@@ -3,7 +3,7 @@ window.LIBRARY = (window.LIBRARY || []).concat([
 {
   id: "sci-cells", lang: "en", category: "science", year: 9,
   title: "The Secret Life of Cells", author: "ReadWorld Science",
-  cover: { emoji: "🔬", c1: "#1f9e6b", c2: "#0c5c45" },
+  cover: { c1: "#1f9e6b", c2: "#0c5c45" },
   description: "Every living thing — from a blade of grass to your own brain — is built from cells. This Year 9 biology reader takes you inside the cell, into its power stations, its factories and its instruction book, then shows how single cells build a whole human body.",
   chapters: [
     {
@@ -59,7 +59,7 @@ window.LIBRARY = (window.LIBRARY || []).concat([
 {
   id: "sci-forces", lang: "en", category: "science", year: 9,
   title: "Forces That Shape the World", author: "ReadWorld Science",
-  cover: { emoji: "⚛️", c1: "#3d6bff", c2: "#12246b" },
+  cover: { c1: "#3d6bff", c2: "#12246b" },
   description: "Why do things fall? Why does a heavy lorry take so long to stop? This Year 9 physics reader explains forces, motion and energy through everyday examples — from riding a bike to landing a spacecraft — building up Newton's great laws step by step.",
   chapters: [
     {
@@ -115,7 +115,7 @@ window.LIBRARY = (window.LIBRARY || []).concat([
 {
   id: "sci-atoms", lang: "en", category: "science", year: 9,
   title: "Atoms and the Periodic Table", author: "ReadWorld Science",
-  cover: { emoji: "🧪", c1: "#c0392b", c2: "#5e130c" },
+  cover: { c1: "#c0392b", c2: "#5e130c" },
   description: "Everything around you — air, water, metal, your own body — is built from about a hundred kinds of atom. This Year 9 chemistry reader tells the story of the atom, the discovery of its hidden parts, and the beautiful table that organises all the elements.",
   chapters: [
     {

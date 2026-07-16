@@ -98,8 +98,25 @@
     if (st.finished) return 100;
     return Math.round(((st.chapter + (st.page + 1) / Math.max(st.pages || 20, 1)) / b.chapters.length) * 100);
   }
-  const CAT_LABEL = { science: "🔬 Science", maths: "📐 Maths", fiction: "✨ Story" };
-  const LANG_LABEL = { en: "🇬🇧 English", ru: "🇷🇺 Русский" };
+  const CAT_LABEL = { science: "Science", maths: "Maths", fiction: "Story" };
+  const CAT_LABEL_RU = { science: "Наука", maths: "Математика", fiction: "Классика" };
+  const LANG_LABEL = { en: "English", ru: "Русский" };
+
+  // Small monoline SVG icons (currentColor). Kept inline to stay dependency-free.
+  const ICON = {
+    play: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.52.85l10.5-6.5a1 1 0 0 0 0-1.7L9.52 4.65A1 1 0 0 0 8 5.5Z"/></svg>',
+    arrow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 6.5"/></svg>',
+    award: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="6"/><path d="M8.4 14.3 7 22l5-2.8L17 22l-1.4-7.7"/></svg>',
+  };
+  function starRow(filled, total) {
+    let s = "";
+    for (let i = 0; i < total; i++) {
+      const on = i < filled;
+      s += `<svg class="star ${on ? "on" : "off"}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.9 6.8 19.2l1-5.8L3.6 9.3l5.8-.8L12 3.2Z"/></svg>`;
+    }
+    return `<div class="quiz-stars" role="img" aria-label="${filled} of ${total} stars">${s}</div>`;
+  }
 
   /* ============================================================
      WELCOME
@@ -112,7 +129,7 @@
       saveState();
       renderLibrary();
       show("library-screen");
-      toast("Welcome, " + name + "! 🎉");
+      toast("Welcome, " + name);
     });
     $("profile-name").addEventListener("keydown", (e) => { if (e.key === "Enter") $("btn-start").click(); });
     $("btn-restore").addEventListener("click", () => openRestoreModal());
@@ -123,12 +140,12 @@
      ============================================================ */
   function shelfDefs() {
     return [
-      { key: "continue", title: "📚 Continue reading", match: (b) => { const s = state.books[b.id]; return s && s.lastRead && !s.finished; } },
-      { key: "en-science", title: "🔬 Year 9 Science — English", match: (b) => b.lang === "en" && b.category === "science" },
-      { key: "en-maths", title: "📐 Year 9 Maths — English", match: (b) => b.lang === "en" && b.category === "maths" },
-      { key: "en-fiction", title: "✨ Classic Stories — English", match: (b) => b.lang === "en" && b.category === "fiction" },
-      { key: "ru-fiction", title: "🇷🇺 Русская классика — 4–9 класс", match: (b) => b.lang === "ru" && b.category === "fiction" },
-      { key: "ru-edu", title: "🇷🇺 Наука и математика — 9 класс", match: (b) => b.lang === "ru" && b.category !== "fiction" },
+      { key: "continue", title: "Continue reading", match: (b) => { const s = state.books[b.id]; return s && s.lastRead && !s.finished; } },
+      { key: "en-science", title: "Year 9 Science — English", match: (b) => b.lang === "en" && b.category === "science" },
+      { key: "en-maths", title: "Year 9 Maths — English", match: (b) => b.lang === "en" && b.category === "maths" },
+      { key: "en-fiction", title: "Classic Stories — English", match: (b) => b.lang === "en" && b.category === "fiction" },
+      { key: "ru-fiction", title: "Русская классика — 4–9 класс", match: (b) => b.lang === "ru" && b.category === "fiction" },
+      { key: "ru-edu", title: "Наука и математика — 9 класс", match: (b) => b.lang === "ru" && b.category !== "fiction" },
     ];
   }
   function passesFilters(b) {
@@ -144,10 +161,22 @@
     return true;
   }
   function coverHTML(b, extraStyle) {
-    return `<div class="book-cover" style="background:linear-gradient(150deg,${b.cover.c1},${b.cover.c2});${extraStyle || ""}">
-      <span class="cover-badge">${b.lang === "ru" ? "Класс " + b.year : "Year " + b.year}</span>
-      <span class="cover-emoji">${b.cover.emoji}</span>
-      <span><span class="cover-title">${esc(b.title)}</span><br><span class="cover-author">${esc(b.author)}</span></span>
+    const kicker = (b.lang === "ru" ? CAT_LABEL_RU[b.category] : CAT_LABEL[b.category]) +
+      " · " + (b.lang === "ru" ? b.year + " кл." : "Year " + b.year);
+    const initial = esc((b.title.match(/[A-Za-zА-Яа-яЁё]/) || ["R"])[0].toUpperCase());
+    return `<div class="book-cover" style="--c1:${b.cover.c1};--c2:${b.cover.c2};${extraStyle || ""}">
+      <div class="cover-spine"></div>
+      <div class="cover-watermark" aria-hidden="true">${initial}</div>
+      <div class="cover-body">
+        <div class="cover-kicker">${esc(kicker)}</div>
+        <div class="cover-heading">
+          <span class="cover-rule"></span>
+          <span class="cover-title">${esc(b.title)}</span>
+          <span class="cover-author">${esc(b.author)}</span>
+          <span class="cover-rule"></span>
+        </div>
+        <div class="cover-imprint">ReadWorld</div>
+      </div>
     </div>`;
   }
   function renderLibrary() {
@@ -170,7 +199,7 @@
         card.className = "book-card";
         card.innerHTML = `${coverHTML(b)}
           <div class="book-meta-line"><span class="book-name">${esc(b.title)}</span></div>
-          ${pct > 0 ? `<div class="book-bar"><div class="book-bar-fill" style="width:${pct}%"></div></div><span class="book-progress-txt">${pct >= 100 ? "Finished ✓" : pct + "% read"}</span>` : `<span class="book-progress-txt">${b.chapters.length} chapters · ~${Math.round(bookWords(b) / 200)} min</span>`}`;
+          ${pct > 0 ? `<div class="book-bar"><div class="book-bar-fill" style="width:${pct}%"></div></div><span class="book-progress-txt">${pct >= 100 ? "Finished" : pct + "% read"}</span>` : `<span class="book-progress-txt">${b.chapters.length} chapters · ~${Math.round(bookWords(b) / 200)} min</span>`}`;
         card.addEventListener("click", () => openDetail(b.id));
         grid.appendChild(card);
       });
@@ -214,13 +243,14 @@
         <div class="detail-author">${esc(b.author)}</div>
         <div class="detail-tags">
           <span class="tag">${LANG_LABEL[b.lang]}</span>
-          <span class="tag">${CAT_LABEL[b.category]}</span>
+          <span class="tag">${b.lang === "ru" ? CAT_LABEL_RU[b.category] : CAT_LABEL[b.category]}</span>
           <span class="tag">${b.lang === "ru" ? b.year + " класс" : "Year " + b.year}</span>
-          <span class="tag">⏱ ~${Math.round(bookWords(b) / 200)} min</span>
+          <span class="tag">${b.chapters.length} chapters</span>
+          <span class="tag">~${Math.round(bookWords(b) / 200)} min</span>
         </div>
         <p class="detail-desc">${esc(b.description)}</p>
         <div class="detail-actions">
-          <button class="btn btn-primary" id="btn-read">${started ? "▶ Continue reading" : "▶ Start reading"}</button>
+          <button class="btn btn-primary btn-icon" id="btn-read"><i class="ic-play">${ICON.play}</i>${started ? "Continue reading" : "Start reading"}</button>
           ${started ? '<button class="btn btn-ghost" id="btn-restart">Start over</button>' : ""}
         </div>
       </div>
@@ -228,7 +258,7 @@
         ${b.chapters.map((c, i) => {
           const q = st && st.quizzes && st.quizzes[i];
           return `<button class="dchap" data-ch="${i}"><span>${i + 1}. ${esc(c.title)}</span>
-            <span class="dchap-state ${q ? "done" : ""}">${q ? "✓ Quiz " + q.score + "/" + q.total : c.quiz.length + " questions"}</span></button>`;
+            <span class="dchap-state ${q ? "done" : ""}">${q ? "Quiz " + q.score + "/" + q.total : c.quiz.length + " questions"}</span></button>`;
         }).join("")}
       </div>`;
     card.querySelector("#btn-read").addEventListener("click", () => openReader(b.id));
@@ -269,11 +299,11 @@
       `<div class="chap-book">${esc(b.title)}</div>` +
       `<h2 class="chap-heading">${esc(ch.title)}</h2>` +
       ch.paragraphs.map((p) => `<p>${esc(p)}</p>`).join("") +
-      `<div class="chap-end"><div class="fleuron">❦ ❦ ❦</div>
+      `<div class="chap-end"><div class="fleuron" aria-hidden="true"><span></span><span class="dot"></span><span></span></div>
         <button class="btn-chap-quiz" id="btn-chap-quiz">
-          ${quizDone ? (isLast ? "🏁 Finish book" : "Next chapter →") : (b.lang === "ru" ? "✍️ Ответь на вопросы" : "✍️ Answer the questions")}
+          ${quizDone ? (isLast ? (b.lang === "ru" ? "Закончить книгу" : "Finish book") : (b.lang === "ru" ? "Следующая глава" : "Next chapter")) : (b.lang === "ru" ? "Ответить на вопросы" : "Answer the questions")}
         </button>
-        ${quizDone ? `<div class="quiz-done-note">Quiz done: ${quizDone.score}/${quizDone.total} ✓ &nbsp;·&nbsp; <a href="#" id="retake-quiz" style="color:var(--accent)">retake</a></div>` : `<div class="quiz-done-note">${b.lang === "ru" ? "Ответь на вопросы, чтобы продолжить" : "Answer the questions to continue"}</div>`}
+        ${quizDone ? `<div class="quiz-done-note">${b.lang === "ru" ? "Результат" : "Quiz"}: ${quizDone.score}/${quizDone.total} &nbsp;·&nbsp; <a href="#" id="retake-quiz">${b.lang === "ru" ? "пройти заново" : "retake"}</a></div>` : `<div class="quiz-done-note">${b.lang === "ru" ? "Ответь на вопросы, чтобы продолжить" : "Answer the questions to continue"}</div>`}
       </div>`;
     $("reader-book-title").textContent = b.title;
     content.querySelector("#btn-chap-quiz").addEventListener("click", () => {
@@ -417,7 +447,7 @@
       const q = st.quizzes[i];
       return `<button class="toc-item ${i === currentChapter ? "current" : ""}" data-ch="${i}">
         <span>${i + 1}. ${esc(c.title)}</span>
-        <span class="toc-state ${q ? "done" : ""}">${q ? "✓ " + q.score + "/" + q.total : ""}</span></button>`;
+        <span class="toc-state ${q ? "done" : ""}">${q ? q.score + "/" + q.total : ""}</span></button>`;
     }).join("");
     $("toc-list").querySelectorAll(".toc-item").forEach((el) =>
       el.addEventListener("click", () => { closeTOC(); currentChapter = +el.dataset.ch; currentPage = 0; renderChapter(); })
@@ -451,7 +481,7 @@
       <div id="quiz-opts">${q.options.map((o, i) => `<button class="quiz-opt" data-i="${i}">${esc(o)}</button>`).join("")}</div>
       <div id="quiz-feedback"></div>
       <div class="quiz-actions"><button class="btn btn-ghost" id="quiz-quit">${ru ? "Вернуться к чтению" : "Back to reading"}</button>
-      <button class="btn btn-primary hidden" id="quiz-next">${ctx.qIdx + 1 < ctx.questions.length ? (ru ? "Дальше →" : "Next →") : (ru ? "Результат 🎉" : "See result 🎉")}</button></div>`;
+      <button class="btn btn-primary hidden" id="quiz-next">${ctx.qIdx + 1 < ctx.questions.length ? (ru ? "Дальше" : "Next") : (ru ? "Результат" : "See result")}</button></div>`;
     card.querySelectorAll(".quiz-opt").forEach((btn) =>
       btn.addEventListener("click", () => answerQuiz(parseInt(btn.dataset.i, 10)))
     );
@@ -476,7 +506,7 @@
     state.stats.answered += 1;
     if (right) state.stats.correct += 1;
     $("quiz-card").querySelector("#quiz-feedback").innerHTML =
-      `<div class="quiz-explain"><strong>${right ? (ru ? "Верно! ✅" : "Correct! ✅") : (ru ? "Не совсем." : "Not quite.")}</strong> ${esc(q.explain || "")}</div>`;
+      `<div class="quiz-explain ${right ? "ok" : "no"}"><strong>${right ? (ru ? "Верно." : "Correct.") : (ru ? "Не совсем." : "Not quite.")}</strong> ${esc(q.explain || "")}</div>`;
     $("quiz-card").querySelector("#quiz-next").classList.remove("hidden");
     ctx.answered = false;
     // lock re-answer by disabling buttons (already disabled)
@@ -493,8 +523,8 @@
     state.stats.quizzesTaken += 1;
     saveState();
     const frac = ctx.score / ctx.questions.length;
-    const stars = frac === 1 ? "⭐⭐⭐" : frac >= 0.66 ? "⭐⭐" : frac >= 0.34 ? "⭐" : "—";
-    const emoji = frac === 1 ? "🏆" : frac >= 0.66 ? "🎉" : frac >= 0.34 ? "💪" : "📖";
+    const starCount = frac === 1 ? 3 : frac >= 0.66 ? 2 : frac >= 0.34 ? 1 : 0;
+    const tier = frac === 1 ? "gold" : frac >= 0.66 ? "good" : frac >= 0.34 ? "ok" : "low";
     const isLast = currentChapter === b.chapters.length - 1;
     const msg = frac === 1
       ? (ru ? "Идеально! Ты всё понял." : "Perfect! You understood everything.")
@@ -503,14 +533,13 @@
         : (ru ? "Неплохо! Можешь перечитать главу и попробовать ещё раз." : "Good try! You can re-read the chapter and try again.");
     $("quiz-card").innerHTML = `
       <div class="quiz-result">
-        <div class="big">${emoji}</div>
-        <div class="quiz-stars">${stars}</div>
-        <h3>${ctx.score} / ${ctx.questions.length}</h3>
+        <div class="score-ring tier-${tier}" style="--pct:${Math.round(frac * 100)}%"><span class="score-frac">${ctx.score}<small>/${ctx.questions.length}</small></span></div>
+        ${starRow(starCount, 3)}
         <p>${msg}</p>
         <div class="quiz-actions" style="justify-content:center">
           <button class="btn btn-ghost" id="qr-reread">${ru ? "Перечитать главу" : "Re-read chapter"}</button>
           <button class="btn btn-ghost" id="qr-retry">${ru ? "Ещё раз" : "Try again"}</button>
-          <button class="btn btn-primary" id="qr-continue">${isLast ? (ru ? "Закончить книгу 🏁" : "Finish book 🏁") : (ru ? "Дальше →" : "Continue →")}</button>
+          <button class="btn btn-primary" id="qr-continue">${isLast ? (ru ? "Закончить книгу" : "Finish book") : (ru ? "Дальше" : "Continue")}</button>
         </div>
       </div>`;
     $("quiz-card").querySelector("#qr-reread").addEventListener("click", () => { closeQuiz(); goToPage(0); });
@@ -526,11 +555,11 @@
     const totalS = Object.values(st.quizzes).reduce((n, q) => n + q.score, 0);
     openModal(`
       <div class="quiz-result">
-        <div class="big">🎓</div>
-        <h3>${b.lang === "ru" ? "Книга прочитана!" : "Book finished!"}</h3>
+        <div class="finish-badge">${ICON.award}</div>
+        <h3>${b.lang === "ru" ? "Книга прочитана" : "Book finished"}</h3>
         <p><strong>${esc(b.title)}</strong><br>${b.lang === "ru" ? "Вопросы" : "Quiz score"}: ${totalS}/${totalQ} · ~${Math.round(bookWords(b) / 200)} min of reading</p>
         <div class="quiz-actions" style="justify-content:center">
-          <button class="btn btn-primary" id="fin-lib">${b.lang === "ru" ? "В библиотеку 📚" : "Back to library 📚"}</button>
+          <button class="btn btn-primary" id="fin-lib">${b.lang === "ru" ? "В библиотеку" : "Back to library"}</button>
         </div>
       </div>`);
     $("modal-card").querySelector("#fin-lib").addEventListener("click", () => { closeModal(); renderLibrary(); show("library-screen"); });
@@ -544,7 +573,7 @@
 
   function openSyncModal() {
     openModal(`
-      <h3>🔄 Sync across devices</h3>
+      <h3>Sync across devices</h3>
       <p>Your reading progress is saved on this device automatically. To continue on another device (tablet, phone, laptop), enter this code there via <em>“Restore my progress”</em>:</p>
       <div class="sync-code-display">${state.profile.syncCode}</div>
       <p>Progress syncs to the server whenever you read, answer questions or change settings.</p>
@@ -554,15 +583,15 @@
       </div>`);
     $("modal-card").querySelector("#m-close").addEventListener("click", closeModal);
     $("modal-card").querySelector("#m-push").addEventListener("click", async () => {
-      await pushSync(); toast("Progress synced ✓"); closeModal();
+      await pushSync(); toast("Progress synced"); closeModal();
     });
   }
 
   function openRestoreModal() {
     openModal(`
-      <h3>🔄 Restore progress</h3>
-      <p>Enter the sync code shown on your other device (Library → 🔄):</p>
-      <input id="m-code" maxlength="6" placeholder="e.g. K7M2ХР" style="text-transform:uppercase;letter-spacing:4px;text-align:center;font-weight:700">
+      <h3>Restore progress</h3>
+      <p>Enter the sync code shown on your other device (Library → Sync):</p>
+      <input id="m-code" maxlength="6" placeholder="e.g. K7M2RP" style="text-transform:uppercase;letter-spacing:4px;text-align:center;font-weight:700">
       <div class="modal-actions">
         <button class="btn btn-ghost" id="m-close">Cancel</button>
         <button class="btn btn-primary" id="m-restore">Restore</button>
@@ -578,7 +607,7 @@
         state.profile.syncCode = code;
         localStorage.setItem(STORE_KEY, JSON.stringify(state));
         closeModal(); renderLibrary(); show("library-screen");
-        toast("Welcome back, " + state.profile.name + "! Progress restored ✓");
+        toast("Welcome back, " + state.profile.name + " — progress restored");
       } catch (e) {
         toast("Code not found — check it and try again");
       }
@@ -591,20 +620,20 @@
     const started = Object.values(state.books).filter((b) => b.lastRead).length;
     const acc = s.answered ? Math.round((s.correct / s.answered) * 100) : 0;
     openModal(`
-      <h3>🏆 ${esc(state.profile.name)}'s progress</h3>
+      <h3>${esc(state.profile.name)}'s progress</h3>
       <div class="stat-grid">
         <div class="stat-box"><div class="v">${started}</div><div class="l">Books started</div></div>
         <div class="stat-box"><div class="v">${finished}</div><div class="l">Books finished</div></div>
         <div class="stat-box"><div class="v">${s.chaptersRead}</div><div class="l">Chapters + quizzes</div></div>
         <div class="stat-box"><div class="v">${acc}%</div><div class="l">Quiz accuracy (${s.correct}/${s.answered})</div></div>
       </div>
-      <div class="modal-actions"><button class="btn btn-primary" id="m-close">Keep reading →</button></div>`);
+      <div class="modal-actions"><button class="btn btn-primary" id="m-close">Keep reading</button></div>`);
     $("modal-card").querySelector("#m-close").addEventListener("click", closeModal);
   }
 
   function openProfileModal() {
     openModal(`
-      <h3>👤 Profile</h3>
+      <h3>Profile</h3>
       <p>Reading as <strong>${esc(state.profile.name)}</strong> · sync code <strong>${state.profile.syncCode}</strong></p>
       <div class="modal-actions">
         <button class="btn btn-ghost" id="m-reset">Switch reader / reset</button>

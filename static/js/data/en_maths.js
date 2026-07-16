@@ -3,7 +3,7 @@ window.LIBRARY = (window.LIBRARY || []).concat([
 {
   id: "mth-algebra", lang: "en", category: "maths", year: 9,
   title: "The Language of Algebra", author: "ReadWorld Maths",
-  cover: { emoji: "📐", c1: "#7b41d6", c2: "#33125e" },
+  cover: { c1: "#7b41d6", c2: "#33125e" },
   description: "Algebra is the language mathematicians use to describe patterns and solve puzzles that ordinary numbers cannot. This Year 9 reader introduces letters as numbers, teaches you to balance and solve equations, and shows how algebra quietly runs the modern world.",
   chapters: [
     {
@@ -59,7 +59,7 @@ window.LIBRARY = (window.LIBRARY || []).concat([
 {
   id: "mth-geometry", lang: "en", category: "maths", year: 9,
   title: "Shapes, Space and Pythagoras", author: "ReadWorld Maths",
-  cover: { emoji: "📏", c1: "#127a8f", c2: "#0a3b45" },
+  cover: { c1: "#127a8f", c2: "#0a3b45" },
   description: "Geometry is the mathematics of shape and space, from the angles in a triangle to a rule discovered 2,500 years ago that still helps build skyscrapers. This Year 9 reader explores angles, triangles and the famous theorem of Pythagoras.",
   chapters: [
     {
