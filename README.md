@@ -1,97 +1,90 @@
-# 🌍 KidWorld
+# 📖 ReadWorld — Read. Think. Grow.
 
-A fun learning platform for Year 1 & 2 students — Maths, English and Russian.
+A Kindle-style reading platform for young readers. A student reads a book one
+page at a time; at the end of each chapter the app asks comprehension
+questions before they can continue. Progress is saved automatically and can
+sync across devices with a short code.
 
----
+Built for a Year 9 reader, with a graded library spanning **Years 4–9** in
+**English and Russian**.
 
-## 🚀 How to Run (Local)
+## Features
 
-### Windows
-1. Make sure [Python](https://www.python.org/downloads/) is installed  
-   *(tick "Add Python to PATH" during install)*
-2. Double-click **`start.bat`**
-3. KidWorld opens at **http://localhost:5000** automatically
+- **Kindle-style reader** — paginated view (tap left/right, swipe, or arrow
+  keys), adjustable font size, line spacing, serif/sans font, and light /
+  sepia / dark themes.
+- **Comprehension questions** — every chapter ends with a short quiz. The
+  reader must answer to continue, gets instant feedback and an explanation
+  for each question, and earns a star score.
+- **Continue where you stopped** — the exact chapter and page are remembered
+  per book. A "Continue reading" shelf brings you straight back.
+- **Cross-device sync** — each reader gets a 6-character sync code. Enter it
+  on another device via *Restore my progress* to carry your whole library
+  and progress across.
+- **Progress & rewards** — books started/finished, chapters completed, and
+  quiz accuracy are tracked on a progress screen.
+- **Bilingual library** — English and Russian, filterable by language,
+  subject (Science / Maths / Stories) and year group (4–9).
 
-### Mac / Linux
-1. Make sure Python 3 is installed
-2. Open Terminal in this folder
-3. Run: `chmod +x start.sh && ./start.sh`
-4. KidWorld opens at **http://localhost:5000** automatically
+## Library
 
-### Manual start (any OS)
+**English**
+- *The Secret Life of Cells* — Year 9 Biology
+- *Forces That Shape the World* — Year 9 Physics
+- *Atoms and the Periodic Table* — Year 9 Chemistry
+- *The Language of Algebra* — Year 9 Maths
+- *Shapes, Space and Pythagoras* — Year 9 Maths
+- *Treasure Island* — R. L. Stevenson (Year 7)
+- *Sherlock Holmes: The Speckled Band* — A. Conan Doyle (Year 9)
+- *Alice's Adventures in Wonderland* — Lewis Carroll (Year 6)
+- *A Christmas Carol* — Charles Dickens (Year 8)
+
+**Русский (4–9 класс)**
+- *Сказка о рыбаке и рыбке* — А. С. Пушкин (4 класс)
+- *Басни* — И. А. Крылов (4 класс)
+- *Конёк-Горбунок* — П. П. Ершов (5 класс)
+- *Каштанка* — А. П. Чехов (6 класс)
+- *Кавказский пленник* — Л. Н. Толстой (7 класс)
+- *Шинель* — Н. В. Гоголь (9 класс)
+- *Атомы и вещество* — химия, 9 класс
+- *Язык алгебры* — математика, 9 класс
+
+All literary works are public-domain classics presented as adapted
+graded-reader editions; the science and maths titles are original
+educational texts written for this platform.
+
+## Run locally
+
 ```bash
-pip install flask
+pip install -r requirements.txt
 python server.py
-```
-Then open **http://localhost:5000**
-
----
-
-## 🌐 Pages
-
-| URL | Who | What |
-|-----|-----|------|
-| `/` | Everyone | Landing page |
-| `/student.html` | Students | Full learning app |
-| `/teacher.html` | Teacher | Dashboard (password: `teach2024`) |
-
----
-
-## 🎮 What's Inside
-
-### Student App
-- 5-step onboarding (name, language 🇬🇧/🇷🇺, year, background)
-- Full Year 1 & 2 curriculum: Maths, English, Russian
-- **Maths → Summary tab**: Number bonds, times tables, fractions, shapes (Year-specific)
-- Language Lab: EN ↔ RU flashcards + translation quiz
-- 12 playable games
-- 6 subject quizzes (auto-advance, no Next button)
-- Teacher forms & quizzes (students answer in-app)
-- Full Russian UI when Russian is selected
-
-### Teacher Dashboard (password: `teach2024`)
-- Post announcements (Normal / Urgent / Fun)
-- Set homework (subject, year group, due date, points)
-- **Google Form-style form builder**: Multiple choice, Text, Rating (1–5⭐), Yes/No
-- **Quiz builder**: Same as forms but with correct answers marked
-- Results dashboard with bar charts and per-student responses
-- Live actions: 🪩 Disco, 🎊 Party, ⭐ Star Rain
-- Student leaderboard & star rewards
-
----
-
-## ☁️ Deploy to Railway (free hosting)
-
-1. Push this folder to a GitHub repo (files at root level)
-2. Go to [railway.app](https://railway.app) → New Project → Deploy from GitHub
-3. Pick your repo — Railway auto-detects Python
-4. Settings → Networking → Generate Domain
-5. Share `yourdomain.railway.app` with students and parents!
-
----
-
-## 📁 File Structure
-
-```
-KidWorld/
-├── server.py          ← Python web server (Flask)
-├── requirements.txt   ← Python packages needed
-├── Procfile           ← For Railway deployment
-├── start.bat          ← Windows launcher (double-click!)
-├── start.sh           ← Mac/Linux launcher
-├── README.md          ← This file
-└── static/
-    ├── index.html     ← Landing page
-    ├── student.html   ← Student app
-    └── teacher.html   ← Teacher dashboard
+# open http://localhost:5000
 ```
 
----
+## How it works
 
-## 🔑 Teacher Password
-Default: **`teach2024`**  
-To change it, edit line 7 in `server.py`:
-```python
-# No password in server.py - it's checked in teacher.html
+- The app is a single-page site in `static/` (HTML + CSS + vanilla JS). No
+  build step, no external dependencies — it runs offline once loaded.
+- Books live as plain JavaScript data in `static/js/data/`. Adding a book is
+  just adding an object with chapters and quiz questions — see any file
+  there for the shape.
+- `server.py` is a small Flask app that serves the site and offers a tiny
+  progress-sync API (`/api/sync/<code>`), storing each reader's JSON under
+  `data/`.
+
+## Adding a book
+
+Open a file in `static/js/data/` and add an entry:
+
+```js
+{
+  id: "unique-id", lang: "en", category: "fiction", year: 7,
+  title: "Book Title", author: "Author",
+  cover: { emoji: "📕", c1: "#hex", c2: "#hex" },
+  description: "One-paragraph blurb.",
+  chapters: [
+    { title: "1 · Chapter", paragraphs: ["…", "…"],
+      quiz: [ { q: "Question?", options: ["a","b","c","d"], a: 0, explain: "Why." } ] }
+  ]
+}
 ```
-Search for `teach2024` in `teacher.html` and change it.

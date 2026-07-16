@@ -2,7 +2,7 @@
 
 echo ""
 echo " =========================================="
-echo "   KidWorld - Starting up..."
+echo "   ReadWorld - Starting up..."
 echo " =========================================="
 echo ""
 
@@ -21,7 +21,7 @@ echo " Installing requirements..."
 pip3 install flask --quiet
 
 echo ""
-echo " Starting KidWorld..."
+echo " Starting ReadWorld..."
 echo " Opening http://localhost:5000"
 echo ""
 

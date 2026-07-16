@@ -2,74 +2,167 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>KidWorld 🌍</title>
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Nunito',sans-serif;background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.stars-bg{position:fixed;inset:0;pointer-events:none}
-.star{position:absolute;border-radius:50%;background:#fff;animation:twinkle var(--d,2s) ease-in-out infinite alternate}
-@keyframes twinkle{0%{opacity:.1;transform:scale(1)}100%{opacity:.9;transform:scale(1.3)}}
-.container{text-align:center;z-index:10;padding:40px 20px}
-.logo{font-size:5rem;margin-bottom:10px;animation:bounce 2s ease-in-out infinite}
-@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-15px)}}
-h1{font-size:3.5rem;font-weight:900;color:#fff;margin-bottom:8px;text-shadow:0 0 30px rgba(255,255,255,0.3)}
-h1 span{background:linear-gradient(90deg,#f093fb,#f5576c,#4facfe,#00f2fe);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.subtitle{font-size:1.2rem;color:rgba(255,255,255,0.7);margin-bottom:50px;font-weight:600}
-.cards{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
-.card{background:rgba(255,255,255,0.08);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.15);border-radius:28px;padding:40px 48px;cursor:pointer;transition:all .3s;text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:16px;min-width:220px}
-.card:hover{transform:translateY(-8px) scale(1.02);background:rgba(255,255,255,0.15);box-shadow:0 20px 60px rgba(0,0,0,0.3)}
-.card-icon{font-size:4rem}
-.card-title{font-size:1.4rem;font-weight:800;color:#fff}
-.card-sub{font-size:.9rem;color:rgba(255,255,255,.6);font-weight:600}
-.card.student{border-color:rgba(79,172,254,0.5)}
-.card.student:hover{box-shadow:0 20px 60px rgba(79,172,254,0.3)}
-.card.teacher{border-color:rgba(240,147,251,0.5)}
-.card.teacher:hover{box-shadow:0 20px 60px rgba(240,147,251,0.3)}
-.card.summary{border-color:rgba(0,242,254,0.5)}
-.card.summary:hover{box-shadow:0 20px 60px rgba(0,242,254,0.3)}
-.floating{position:fixed;pointer-events:none;font-size:2rem;animation:float var(--d,8s) ease-in-out infinite;opacity:0.15}
-@keyframes float{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-30px) rotate(10deg)}}
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1a1a2e">
+<title>ReadWorld — Read. Think. Grow.</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
+<link rel="stylesheet" href="css/app.css">
 </head>
 <body>
-<div class="stars-bg" id="stars"></div>
-<div class="container">
-  <div class="logo">🌍</div>
-  <h1>Kid<span>World</span></h1>
-  <p class="subtitle">The most fun way to learn — Maths · English · Russian 🚀</p>
-  <div class="cards">
-    <a href="student.html" class="card student">
-      <div class="card-icon">🎮</div>
-      <div class="card-title">I'm a Student</div>
-      <div class="card-sub">Play, learn & earn stars!</div>
-    </a>
-    <a href="teacher.html" class="card teacher">
-      <div class="card-icon">👩‍🏫</div>
-      <div class="card-title">I'm a Teacher</div>
-      <div class="card-sub">Manage your classroom</div>
-    </a>
 
+<!-- ===================== WELCOME / PROFILE ===================== -->
+<div id="welcome-screen" class="screen hidden">
+  <div class="welcome-card">
+    <div class="welcome-logo">📖</div>
+    <h1>ReadWorld</h1>
+    <p class="welcome-tag">Read. Think. Grow. &nbsp;·&nbsp; Читай. Думай. Расти.</p>
+    <label class="field-label" for="profile-name">What's your name? / Как тебя зовут?</label>
+    <input id="profile-name" type="text" maxlength="24" placeholder="Your name…" autocomplete="off">
+    <button id="btn-start" class="btn btn-primary btn-lg">Start Reading →</button>
+    <div class="welcome-sync">
+      <span>Already have a sync code from another device?</span>
+      <button id="btn-restore" class="btn btn-ghost">Restore my progress</button>
+    </div>
   </div>
 </div>
-<script>
-const sb=document.getElementById('stars');
-for(let i=0;i<120;i++){
-  const s=document.createElement('div');
-  s.className='star';
-  const size=Math.random()*3+1;
-  s.style.cssText=`width:${size}px;height:${size}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${1+Math.random()*3}s;animation-delay:${Math.random()*3}s`;
-  sb.appendChild(s);
-}
-const emojis=['⭐','🎮','📚','🔢','🌟','🎯','🏆','✨','🎨','🚀'];
-emojis.forEach((e,i)=>{
-  const d=document.createElement('div');
-  d.className='floating';
-  d.textContent=e;
-  d.style.cssText=`left:${Math.random()*90}%;top:${Math.random()*90}%;--d:${6+Math.random()*6}s;animation-delay:${i*0.8}s`;
-  document.body.appendChild(d);
-});
-</script>
+
+<!-- ===================== LIBRARY ===================== -->
+<div id="library-screen" class="screen hidden">
+  <header class="lib-header">
+    <div class="lib-header-inner">
+      <div class="lib-brand">
+        <span class="lib-logo">📖</span>
+        <div>
+          <div class="lib-title">ReadWorld</div>
+          <div class="lib-sub" id="lib-greeting">Hello!</div>
+        </div>
+      </div>
+      <div class="lib-actions">
+        <button id="btn-stats" class="icon-btn" title="My progress">🏆</button>
+        <button id="btn-sync" class="icon-btn" title="Sync across devices">🔄</button>
+        <button id="btn-profile" class="icon-btn" title="Profile">👤</button>
+      </div>
+    </div>
+    <div class="lib-search-row">
+      <input id="lib-search" type="search" placeholder="Search books… / Поиск книг…">
+    </div>
+    <nav class="lib-filters" id="lib-filters">
+      <button class="chip active" data-filter="all">All books</button>
+      <button class="chip" data-filter="continue">📚 Continue</button>
+      <button class="chip" data-filter="en">🇬🇧 English</button>
+      <button class="chip" data-filter="ru">🇷🇺 Русский</button>
+      <button class="chip" data-filter="science">🔬 Science</button>
+      <button class="chip" data-filter="maths">📐 Maths</button>
+      <button class="chip" data-filter="fiction">✨ Stories</button>
+    </nav>
+    <nav class="lib-filters lib-years" id="lib-years">
+      <button class="chip yr active" data-year="all">All years</button>
+      <button class="chip yr" data-year="4">Year 4</button>
+      <button class="chip yr" data-year="5">Year 5</button>
+      <button class="chip yr" data-year="6">Year 6</button>
+      <button class="chip yr" data-year="7">Year 7</button>
+      <button class="chip yr" data-year="8">Year 8</button>
+      <button class="chip yr" data-year="9">Year 9</button>
+    </nav>
+  </header>
+  <main id="lib-shelves" class="lib-shelves"></main>
+  <footer class="lib-footer">ReadWorld · A family reading project · Classic texts presented as adapted graded-reader editions</footer>
+</div>
+
+<!-- ===================== BOOK DETAILS ===================== -->
+<div id="detail-screen" class="screen hidden">
+  <div class="detail-wrap">
+    <button class="btn btn-ghost detail-back" id="btn-detail-back">← Library</button>
+    <div class="detail-card" id="detail-card"></div>
+  </div>
+</div>
+
+<!-- ===================== READER ===================== -->
+<div id="reader-screen" class="screen hidden">
+  <header class="reader-top" id="reader-top">
+    <button class="icon-btn" id="btn-reader-back" title="Back to library">←</button>
+    <div class="reader-book-title" id="reader-book-title"></div>
+    <div class="reader-top-actions">
+      <button class="icon-btn" id="btn-toc" title="Contents">☰</button>
+      <button class="icon-btn" id="btn-settings" title="Display settings">Aa</button>
+    </div>
+  </header>
+
+  <div class="reader-stage" id="reader-stage">
+    <div class="reader-viewport" id="reader-viewport">
+      <div class="reader-content" id="reader-content"></div>
+    </div>
+    <div class="tap-zone tap-left" id="tap-left"></div>
+    <div class="tap-zone tap-right" id="tap-right"></div>
+  </div>
+
+  <footer class="reader-bottom" id="reader-bottom">
+    <div class="reader-progressbar"><div class="reader-progress-fill" id="reader-progress-fill"></div></div>
+    <div class="reader-meta">
+      <span id="reader-chapter-label"></span>
+      <span id="reader-page-label"></span>
+      <span id="reader-percent-label"></span>
+    </div>
+  </footer>
+
+  <!-- TOC drawer -->
+  <div class="drawer-backdrop hidden" id="toc-backdrop"></div>
+  <aside class="toc-drawer hidden" id="toc-drawer">
+    <div class="toc-head">Contents · Оглавление</div>
+    <div id="toc-list"></div>
+  </aside>
+
+  <!-- Display settings popover -->
+  <div class="settings-pop hidden" id="settings-pop">
+    <div class="set-row">
+      <span class="set-label">Font size</span>
+      <div class="set-controls">
+        <button class="set-btn" data-act="font-">A−</button>
+        <button class="set-btn" data-act="font+">A+</button>
+      </div>
+    </div>
+    <div class="set-row">
+      <span class="set-label">Line spacing</span>
+      <div class="set-controls">
+        <button class="set-btn" data-act="line-">≡−</button>
+        <button class="set-btn" data-act="line+">≡+</button>
+      </div>
+    </div>
+    <div class="set-row">
+      <span class="set-label">Font</span>
+      <div class="set-controls">
+        <button class="set-btn" data-act="serif">Serif</button>
+        <button class="set-btn" data-act="sans">Sans</button>
+      </div>
+    </div>
+    <div class="set-row">
+      <span class="set-label">Theme</span>
+      <div class="set-controls">
+        <button class="theme-dot theme-light" data-act="th-light" title="Light"></button>
+        <button class="theme-dot theme-sepia" data-act="th-sepia" title="Sepia"></button>
+        <button class="theme-dot theme-dark" data-act="th-dark" title="Dark"></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== QUIZ ===================== -->
+<div id="quiz-overlay" class="overlay hidden">
+  <div class="quiz-card" id="quiz-card"></div>
+</div>
+
+<!-- ===================== GENERIC MODAL ===================== -->
+<div id="modal-overlay" class="overlay hidden">
+  <div class="modal-card" id="modal-card"></div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="js/data/en_science.js"></script>
+<script src="js/data/en_maths.js"></script>
+<script src="js/data/en_fiction.js"></script>
+<script src="js/data/ru_fiction.js"></script>
+<script src="js/data/ru_edu.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>
