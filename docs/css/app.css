@@ -262,8 +262,34 @@ input { font-family: inherit; }
 .chap-end .quiz-done-note a { color: var(--accent); text-decoration: none; font-weight: 600; }
 .chap-end .quiz-done-note a:hover { text-decoration: underline; }
 
-.tap-zone { position: absolute; top: 0; bottom: 0; width: 22%; z-index: 10; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.tap-left { left: 0; } .tap-right { right: 0; }
+/* highlights */
+.reader-content mark.hl {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  color: inherit; border-radius: 3px; padding: 0 1px; cursor: pointer;
+  box-decoration-break: clone; -webkit-box-decoration-break: clone;
+}
+.reader-content mark.hl.has-note { border-bottom: 2px solid var(--accent); }
+
+/* selection toolbar */
+.sel-toolbar {
+  position: absolute; z-index: 25; display: flex; gap: 2px; padding: 4px;
+  background: #26262e; border: 1px solid rgba(255,255,255,.12); border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(0,0,0,.45);
+}
+.sel-toolbar button {
+  display: inline-flex; align-items: center; gap: 6px; background: none; border: none;
+  color: #f2f2f7; font-size: 13.5px; font-weight: 600; padding: 8px 12px; border-radius: 9px;
+}
+.sel-toolbar button:hover { background: rgba(255,255,255,.12); }
+.sel-toolbar svg { width: 16px; height: 16px; }
+
+/* notes count badge */
+#btn-notes { position: relative; }
+.note-count {
+  position: absolute; top: -5px; right: -5px; min-width: 17px; height: 17px; padding: 0 4px;
+  border-radius: 999px; background: #ff6126; color: #fff; font-size: 10.5px; font-weight: 800;
+  display: inline-flex; align-items: center; justify-content: center; line-height: 1;
+}
 
 .reader-bottom { flex: 0 0 auto; padding: 0 8vw 12px; background: var(--paper); position: relative; z-index: 30; }
 .reader-progressbar { height: 3px; border-radius: 3px; background: color-mix(in srgb, var(--ink) 10%, transparent); margin-bottom: 8px; overflow: hidden; }
@@ -288,6 +314,35 @@ input { font-family: inherit; }
 .toc-item.current { background: color-mix(in srgb, var(--accent) 14%, transparent); font-weight: 700; }
 .toc-state { font-size: 12px; color: var(--faint); flex: 0 0 auto; }
 .toc-state.done { color: #2fa568; }
+
+/* Notes drawer (right side) */
+.notes-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(360px, 88vw); z-index: 41;
+  background: var(--paper); color: var(--ink); box-shadow: -8px 0 30px rgba(0,0,0,.3);
+  padding: 20px; overflow-y: auto; animation: slideinR .22s ease;
+}
+@keyframes slideinR { from { transform: translateX(100%); } to { transform: translateX(0); } }
+.notes-empty { color: var(--faint); font-size: 14px; line-height: 1.6; padding: 16px 4px; }
+.note-item {
+  position: relative; padding: 12px 34px 12px 12px; border-radius: 12px; margin-bottom: 10px;
+  background: color-mix(in srgb, var(--ink) 5%, transparent); border: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
+  cursor: pointer; transition: border-color .12s;
+}
+.note-item:hover { border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.note-item-ch { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--accent); margin-bottom: 6px; }
+.note-item-note { font-size: 13.5px; line-height: 1.5; color: var(--ink); margin-top: 8px; }
+.note-item-del {
+  position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; border-radius: 8px;
+  background: none; border: none; color: var(--faint); display: inline-flex; align-items: center; justify-content: center;
+}
+.note-item-del:hover { background: color-mix(in srgb, var(--ink) 10%, transparent); color: #e0524d; }
+.note-item-del svg { width: 15px; height: 15px; }
+.note-quote {
+  font-family: Georgia, serif; font-style: italic; font-size: 14.5px; line-height: 1.5;
+  border-left: 3px solid var(--accent, #ff7a2f); padding: 2px 0 2px 12px; margin: 0; color: inherit;
+}
+.note-quote.sm { font-size: 13.5px; }
+.notes-drawer .note-quote { color: var(--ink); }
 
 /* Settings popover */
 .settings-pop {
@@ -385,7 +440,15 @@ input { font-family: inherit; }
   font-size: 16px; margin-bottom: 14px; outline: none;
 }
 .modal-card input:focus { border-color: #ff7a2f; }
-.modal-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+.modal-card textarea {
+  width: 100%; padding: 12px 14px; border-radius: 12px; border: 1.5px solid #d8d8e2;
+  font-size: 15px; line-height: 1.5; margin-bottom: 14px; outline: none; resize: vertical; min-height: 90px;
+}
+.modal-card textarea:focus { border-color: #ff7a2f; }
+.modal-card .note-quote { color: #4a4a58; margin-bottom: 14px; }
+.modal-card .note-body { font-size: 15px; line-height: 1.6; color: #33333e; margin-bottom: 16px; }
+.modal-card .note-empty { font-size: 14px; color: #9a9aa8; margin-bottom: 16px; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; align-items: center; }
 .sync-code-display {
   font-size: 30px; font-weight: 800; letter-spacing: 6px; text-align: center;
   background: #f4f4f9; border: 2px dashed #c9c9d8; border-radius: 14px; padding: 16px; margin-bottom: 14px;

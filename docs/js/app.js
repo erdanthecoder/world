@@ -39,7 +39,8 @@
     scheduleSyncPush();
   }
   function bookState(id) {
-    if (!state.books[id]) state.books[id] = { chapter: 0, page: 0, quizzes: {}, finished: false, lastRead: 0 };
+    if (!state.books[id]) state.books[id] = { chapter: 0, page: 0, quizzes: {}, finished: false, lastRead: 0, highlights: [] };
+    if (!state.books[id].highlights) state.books[id].highlights = [];
     return state.books[id];
   }
 
@@ -298,7 +299,7 @@
     content.innerHTML =
       `<div class="chap-book">${esc(b.title)}</div>` +
       `<h2 class="chap-heading">${esc(ch.title)}</h2>` +
-      ch.paragraphs.map((p) => `<p>${esc(p)}</p>`).join("") +
+      ch.paragraphs.map((p, pi) => `<p data-pi="${pi}">${renderParagraph(p, pi, st)}</p>`).join("") +
       `<div class="chap-end"><div class="fleuron" aria-hidden="true"><span></span><span class="dot"></span><span></span></div>
         <button class="btn-chap-quiz" id="btn-chap-quiz">
           ${quizDone ? (isLast ? (b.lang === "ru" ? "Закончить книгу" : "Finish book") : (b.lang === "ru" ? "Следующая глава" : "Next chapter")) : (b.lang === "ru" ? "Ответить на вопросы" : "Answer the questions")}
@@ -312,7 +313,33 @@
     });
     const retake = content.querySelector("#retake-quiz");
     if (retake) retake.addEventListener("click", (e) => { e.preventDefault(); startQuiz(); });
+    updateNoteCount();
     requestAnimationFrame(() => { paginate(); goToPage(Math.min(currentPage, pageCount - 1), false); });
+  }
+
+  /* ---- Highlights & notes ---- */
+  // Rebuild a paragraph's HTML, wrapping any saved highlights in <mark>.
+  function renderParagraph(raw, pi, st) {
+    let hls = (st.highlights || [])
+      .filter((h) => h.ch === currentChapter && h.pi === pi && h.start >= 0 && h.start + h.len <= raw.length)
+      .sort((a, b) => a.start - b.start);
+    if (!hls.length) return esc(raw);
+    let out = "", cursor = 0, lastEnd = 0;
+    hls.forEach((h) => {
+      if (h.start < lastEnd) return;           // skip overlapping highlight
+      out += esc(raw.slice(cursor, h.start));
+      out += `<mark class="hl${h.note ? " has-note" : ""}" data-hid="${h.id}">${esc(raw.slice(h.start, h.start + h.len))}</mark>`;
+      cursor = h.start + h.len; lastEnd = cursor;
+    });
+    out += esc(raw.slice(cursor));
+    return out;
+  }
+  function totalHighlights(id) { const st = state.books[id]; return st && st.highlights ? st.highlights.length : 0; }
+  function updateNoteCount() {
+    const n = totalHighlights(currentBook.id);
+    const el = $("note-count");
+    el.textContent = n;
+    el.classList.toggle("hidden", n === 0);
   }
 
   function paginate() {
@@ -395,30 +422,60 @@
 
   function initReader() {
     $("btn-reader-back").addEventListener("click", () => { renderLibrary(); show("library-screen"); });
-    $("tap-right").addEventListener("click", nextPage);
-    $("tap-left").addEventListener("click", prevPage);
+    // Page turns: tap the left / right third of the page (unless selecting text
+    // or tapping a highlight). The middle third is a quiet reading zone.
+    const stage = $("reader-stage");
+    stage.addEventListener("click", (e) => {
+      if (e.target.closest("#sel-toolbar") || e.target.closest("mark.hl")) return;
+      const sel = window.getSelection();
+      if (sel && !sel.isCollapsed) return;   // user is selecting text
+      const rect = stage.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width;
+      if (x < 0.32) prevPage(); else if (x > 0.68) nextPage();
+    });
+    // open a highlight's note when its mark is tapped
+    $("reader-content").addEventListener("click", (e) => {
+      const mk = e.target.closest("mark.hl"); if (!mk) return;
+      e.stopPropagation();
+      openHighlightModal(mk.dataset.hid);
+    });
+    // selection toolbar
+    document.addEventListener("selectionchange", onSelectionChange);
+    $("sel-toolbar").addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-sel]"); if (!btn) return;
+      if (btn.dataset.sel === "highlight") commitHighlight("");
+      else openNoteEditor(null);
+    });
     document.addEventListener("keydown", (e) => {
       if ($("reader-screen").classList.contains("hidden")) return;
       if (!$("quiz-overlay").classList.contains("hidden") || !$("modal-overlay").classList.contains("hidden")) return;
-      if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); nextPage(); }
+      if (e.key === "ArrowRight") { e.preventDefault(); nextPage(); }
       if (e.key === "ArrowLeft") { e.preventDefault(); prevPage(); }
     });
     // swipe
-    let sx = null;
-    $("reader-stage").addEventListener("touchstart", (e) => (sx = e.touches[0].clientX), { passive: true });
-    $("reader-stage").addEventListener("touchend", (e) => {
+    let sx = null, sy = null;
+    stage.addEventListener("touchstart", (e) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+    stage.addEventListener("touchend", (e) => {
       if (sx === null) return;
+      const sel = window.getSelection();
       const dx = e.changedTouches[0].clientX - sx;
-      if (dx < -40) nextPage(); else if (dx > 40) prevPage();
+      const dy = e.changedTouches[0].clientY - sy;
       sx = null;
+      if (sel && !sel.isCollapsed) return;          // selecting — don't turn page
+      if (Math.abs(dx) < 40 || Math.abs(dy) > Math.abs(dx)) return;
+      if (dx < 0) nextPage(); else prevPage();
     }, { passive: true });
     window.addEventListener("resize", () => {
       if ($("reader-screen").classList.contains("hidden")) return;
+      hideSelToolbar();
       paginate(); goToPage(currentPage, false);
     });
     // TOC
     $("btn-toc").addEventListener("click", openTOC);
     $("toc-backdrop").addEventListener("click", closeTOC);
+    // Notes
+    $("btn-notes").addEventListener("click", openNotes);
+    $("notes-backdrop").addEventListener("click", closeNotes);
     // settings popover
     $("btn-settings").addEventListener("click", () => $("settings-pop").classList.toggle("hidden"));
     document.addEventListener("click", (e) => {
@@ -452,10 +509,162 @@
     $("toc-list").querySelectorAll(".toc-item").forEach((el) =>
       el.addEventListener("click", () => { closeTOC(); currentChapter = +el.dataset.ch; currentPage = 0; renderChapter(); })
     );
+    closeNotes();
     $("toc-drawer").classList.remove("hidden");
     $("toc-backdrop").classList.remove("hidden");
   }
   function closeTOC() { $("toc-drawer").classList.add("hidden"); $("toc-backdrop").classList.add("hidden"); }
+
+  /* ============================================================
+     SELECTION → HIGHLIGHTS & NOTES
+     ============================================================ */
+  let pendingSel = null;   // { ch, pi, start, len, text }
+
+  function paragraphOf(node) {
+    const el = node.nodeType === 3 ? node.parentElement : node;
+    return el ? el.closest("p[data-pi]") : null;
+  }
+  function onSelectionChange() {
+    if ($("reader-screen").classList.contains("hidden")) return;
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || sel.rangeCount === 0) { hideSelToolbar(); return; }
+    const range = sel.getRangeAt(0);
+    const content = $("reader-content");
+    if (!content.contains(range.commonAncestorContainer)) { hideSelToolbar(); return; }
+    const p = paragraphOf(range.startContainer);
+    const p2 = paragraphOf(range.endContainer);
+    if (!p || p !== p2) { hideSelToolbar(); return; }   // keep it to one paragraph
+    let s = range.toString();
+    const lead = s.length - s.trimStart().length;
+    const trail = s.length - s.trimEnd().length;
+    const text = s.trim();
+    if (text.length < 2) { hideSelToolbar(); return; }
+    const pre = range.cloneRange();
+    pre.selectNodeContents(p);
+    pre.setEnd(range.startContainer, range.startOffset);
+    const start = pre.toString().length + lead;
+    pendingSel = { ch: currentChapter, pi: +p.dataset.pi, start, len: s.length - lead - trail, text };
+    showSelToolbar(range.getBoundingClientRect());
+  }
+  function showSelToolbar(rect) {
+    const stage = $("reader-stage");
+    const sr = stage.getBoundingClientRect();
+    const tb = $("sel-toolbar");
+    tb.classList.remove("hidden");
+    const tw = tb.offsetWidth, th = tb.offsetHeight;
+    let left = rect.left - sr.left + rect.width / 2 - tw / 2;
+    left = Math.max(8, Math.min(left, sr.width - tw - 8));
+    let top = rect.top - sr.top - th - 10;
+    if (top < 6) top = rect.bottom - sr.top + 10;   // flip below if no room above
+    tb.style.left = left + "px";
+    tb.style.top = top + "px";
+  }
+  function hideSelToolbar() { $("sel-toolbar").classList.add("hidden"); }
+
+  function commitHighlight(note) {
+    if (!pendingSel) return;
+    const st = bookState(currentBook.id);
+    st.highlights.push({
+      id: "h" + Date.now().toString(36) + Math.floor(Math.random() * 1000),
+      ch: pendingSel.ch, pi: pendingSel.pi, start: pendingSel.start, len: pendingSel.len,
+      text: pendingSel.text, note: note || "", ts: Date.now(),
+    });
+    saveState();
+    pendingSel = null;
+    hideSelToolbar();
+    window.getSelection().removeAllRanges();
+    const keep = currentPage;
+    renderChapter();
+    requestAnimationFrame(() => goToPage(keep, false));
+  }
+
+  function openNoteEditor(existing) {
+    const ru = currentBook.lang === "ru";
+    const quote = existing ? existing.text : (pendingSel ? pendingSel.text : "");
+    openModal(`
+      <h3>${existing ? (ru ? "Заметка" : "Edit note") : (ru ? "Новая заметка" : "Add a note")}</h3>
+      <blockquote class="note-quote">${esc(quote)}</blockquote>
+      <textarea id="note-text" rows="4" placeholder="${ru ? "Запиши свою мысль…" : "Write your thought…"}">${existing ? esc(existing.note) : ""}</textarea>
+      <div class="modal-actions">
+        ${existing ? `<button class="btn btn-ghost" id="note-del" style="margin-right:auto">${ru ? "Удалить" : "Delete"}</button>` : ""}
+        <button class="btn btn-ghost" id="note-cancel">${ru ? "Отмена" : "Cancel"}</button>
+        <button class="btn btn-primary" id="note-save">${ru ? "Сохранить" : "Save"}</button>
+      </div>`);
+    const ta = $("modal-card").querySelector("#note-text");
+    ta.focus();
+    $("modal-card").querySelector("#note-cancel").addEventListener("click", closeModal);
+    $("modal-card").querySelector("#note-save").addEventListener("click", () => {
+      const val = ta.value.trim();
+      if (existing) {
+        existing.note = val; saveState(); closeModal();
+        const keep = currentPage; renderChapter(); requestAnimationFrame(() => goToPage(keep, false));
+      } else {
+        closeModal(); commitHighlight(val);
+      }
+    });
+    const del = $("modal-card").querySelector("#note-del");
+    if (del) del.addEventListener("click", () => { closeModal(); removeHighlight(existing.id); });
+  }
+
+  function openHighlightModal(hid) {
+    const st = bookState(currentBook.id);
+    const h = st.highlights.find((x) => x.id === hid);
+    if (!h) return;
+    const ru = currentBook.lang === "ru";
+    openModal(`
+      <h3>${ru ? "Выделение" : "Highlight"}</h3>
+      <blockquote class="note-quote">${esc(h.text)}</blockquote>
+      ${h.note ? `<p class="note-body">${esc(h.note)}</p>` : `<p class="note-empty">${ru ? "Без заметки." : "No note yet."}</p>`}
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="hl-del" style="margin-right:auto">${ru ? "Удалить" : "Remove"}</button>
+        <button class="btn btn-ghost" id="hl-close">${ru ? "Закрыть" : "Close"}</button>
+        <button class="btn btn-primary" id="hl-note">${h.note ? (ru ? "Изменить заметку" : "Edit note") : (ru ? "Добавить заметку" : "Add note")}</button>
+      </div>`);
+    $("modal-card").querySelector("#hl-close").addEventListener("click", closeModal);
+    $("modal-card").querySelector("#hl-del").addEventListener("click", () => { closeModal(); removeHighlight(hid); });
+    $("modal-card").querySelector("#hl-note").addEventListener("click", () => { closeModal(); openNoteEditor(h); });
+  }
+
+  function removeHighlight(hid) {
+    const st = bookState(currentBook.id);
+    st.highlights = st.highlights.filter((x) => x.id !== hid);
+    saveState();
+    if (!$("notes-drawer").classList.contains("hidden")) renderNotesList();
+    const keep = currentPage; renderChapter(); requestAnimationFrame(() => goToPage(keep, false));
+  }
+
+  function openNotes() { closeTOC(); renderNotesList(); $("notes-drawer").classList.remove("hidden"); $("notes-backdrop").classList.remove("hidden"); }
+  function closeNotes() { $("notes-drawer").classList.add("hidden"); $("notes-backdrop").classList.add("hidden"); }
+  function renderNotesList() {
+    const b = currentBook;
+    const st = bookState(b.id);
+    const ru = b.lang === "ru";
+    const list = $("notes-list");
+    const items = st.highlights.slice().sort((a, c) => a.ch - c.ch || a.pi - c.pi || a.start - c.start);
+    if (!items.length) {
+      list.innerHTML = `<div class="notes-empty">${ru ? "Пока нет выделений. Выдели текст во время чтения, чтобы отметить его или добавить заметку." : "No highlights yet. Select text while reading to highlight it or add a note."}</div>`;
+      return;
+    }
+    list.innerHTML = items.map((h) => `
+      <div class="note-item" data-hid="${h.id}" data-ch="${h.ch}">
+        <div class="note-item-ch">${ru ? "Глава" : "Chapter"} ${h.ch + 1}</div>
+        <blockquote class="note-quote sm">${esc(h.text)}</blockquote>
+        ${h.note ? `<div class="note-item-note">${esc(h.note)}</div>` : ""}
+        <button class="note-item-del" data-del="${h.id}" aria-label="${ru ? "Удалить" : "Delete"}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg>
+        </button>
+      </div>`).join("");
+    list.querySelectorAll(".note-item").forEach((el) => {
+      el.addEventListener("click", (e) => {
+        if (e.target.closest("[data-del]")) return;
+        closeNotes();
+        currentChapter = +el.dataset.ch; currentPage = 0; renderChapter();
+      });
+    });
+    list.querySelectorAll("[data-del]").forEach((btn) =>
+      btn.addEventListener("click", (e) => { e.stopPropagation(); removeHighlight(btn.dataset.del); })
+    );
+  }
 
   /* ============================================================
      QUIZ

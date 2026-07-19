@@ -61,20 +61,45 @@ python server.py
 # open http://localhost:5000
 ```
 
+## Publish to GitHub Pages
+
+The site is a plain static site in `docs/`, so it can be hosted on GitHub
+Pages for free (reading, quizzes, highlights and notes all work; only the
+cross-device *sync code* needs the local Flask server).
+
+Two ways:
+
+1. **From a branch (fastest).** Repo → *Settings → Pages → Build and
+   deployment → Source: Deploy from a branch* → pick the branch and set the
+   folder to **`/docs`**. Your site appears at
+   `https://<user>.github.io/world/`.
+2. **From Actions.** Merge to the default branch; the included workflow
+   (`.github/workflows/pages.yml`) builds and deploys `docs/` automatically
+   (set *Settings → Pages → Source* to *GitHub Actions* if prompted).
+
 ## How it works
 
-- The app is a single-page site in `static/` (HTML + CSS + vanilla JS). No
+- The app is a single-page site in `docs/` (HTML + CSS + vanilla JS). No
   build step, no external dependencies — it runs offline once loaded.
-- Books live as plain JavaScript data in `static/js/data/`. Adding a book is
+- Books live as plain JavaScript data in `docs/js/data/`. Adding a book is
   just adding an object with chapters and quiz questions — see any file
   there for the shape.
 - `server.py` is a small Flask app that serves the site and offers a tiny
   progress-sync API (`/api/sync/<code>`), storing each reader's JSON under
   `data/`.
 
+## Reading features
+
+- **Highlights & notes** — select any text in the reader to highlight it or
+  attach a note. A badge on the notes button shows how many you have, and the
+  notes panel lists every highlight with a jump-to-chapter link.
+- **Comprehension questions** gate the end of each chapter.
+- **Progress and display settings** (font, size, spacing, theme) are saved
+  per reader.
+
 ## Adding a book
 
-Open a file in `static/js/data/` and add an entry:
+Open a file in `docs/js/data/` and add an entry:
 
 ```js
 {

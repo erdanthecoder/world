@@ -33,7 +33,7 @@ def _path_for(code):
 
 @app.route("/")
 def index():
-    return send_from_directory("static", "index.html")
+    return send_from_directory("docs", "index.html")
 
 
 @app.route("/api/health")
@@ -68,7 +68,7 @@ def sync(code):
 
 @app.route("/<path:filename>")
 def static_files(filename):
-    return send_from_directory("static", filename)
+    return send_from_directory("docs", filename)
 
 
 if __name__ == "__main__":
