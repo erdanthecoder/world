@@ -1,11 +1,15 @@
 name: Deploy ReadWorld to GitHub Pages
 
 # Publishes the static site in docs/ to GitHub Pages.
-# Runs when the default branch changes, or on demand from the Actions tab.
+# Runs on the default branch and on the active development branch, or on demand.
 on:
   push:
-    branches: [main]
-    paths: ["docs/**", ".github/workflows/pages.yml"]
+    branches:
+      - main
+      - claude/year-9-reading-platform-w7097c
+    paths:
+      - "docs/**"
+      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:

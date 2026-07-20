@@ -39,8 +39,9 @@
     scheduleSyncPush();
   }
   function bookState(id) {
-    if (!state.books[id]) state.books[id] = { chapter: 0, page: 0, quizzes: {}, finished: false, lastRead: 0, highlights: [] };
+    if (!state.books[id]) state.books[id] = { chapter: 0, page: 0, quizzes: {}, finished: false, lastRead: 0, highlights: [], writings: {} };
     if (!state.books[id].highlights) state.books[id].highlights = [];
+    if (!state.books[id].writings) state.books[id].writings = {};
     return state.books[id];
   }
 
@@ -294,22 +295,26 @@
     const ch = b.chapters[currentChapter];
     const st = bookState(b.id);
     const quizDone = st.quizzes[currentChapter];
+    const pendingWriting = quizDone && ch.writing && !st.writings[currentChapter];
     const isLast = currentChapter === b.chapters.length - 1;
+    const ru = b.lang === "ru";
+    let btnLabel;
+    if (!quizDone) btnLabel = ru ? "Ответить на вопросы" : "Answer the questions";
+    else if (pendingWriting) btnLabel = ru ? "Письменное задание" : "Writing task";
+    else btnLabel = isLast ? (ru ? "Закончить книгу" : "Finish book") : (ru ? "Следующая глава" : "Next chapter");
     const content = $("reader-content");
     content.innerHTML =
       `<div class="chap-book">${esc(b.title)}</div>` +
       `<h2 class="chap-heading">${esc(ch.title)}</h2>` +
       ch.paragraphs.map((p, pi) => `<p data-pi="${pi}">${renderParagraph(p, pi, st)}</p>`).join("") +
       `<div class="chap-end"><div class="fleuron" aria-hidden="true"><span></span><span class="dot"></span><span></span></div>
-        <button class="btn-chap-quiz" id="btn-chap-quiz">
-          ${quizDone ? (isLast ? (b.lang === "ru" ? "Закончить книгу" : "Finish book") : (b.lang === "ru" ? "Следующая глава" : "Next chapter")) : (b.lang === "ru" ? "Ответить на вопросы" : "Answer the questions")}
-        </button>
-        ${quizDone ? `<div class="quiz-done-note">${b.lang === "ru" ? "Результат" : "Quiz"}: ${quizDone.score}/${quizDone.total} &nbsp;·&nbsp; <a href="#" id="retake-quiz">${b.lang === "ru" ? "пройти заново" : "retake"}</a></div>` : `<div class="quiz-done-note">${b.lang === "ru" ? "Ответь на вопросы, чтобы продолжить" : "Answer the questions to continue"}</div>`}
+        <button class="btn-chap-quiz" id="btn-chap-quiz">${btnLabel}</button>
+        ${quizDone ? `<div class="quiz-done-note">${ru ? "Результат" : "Quiz"}: ${quizDone.score}/${quizDone.total}${ch.writing ? " &nbsp;·&nbsp; " + (st.writings[currentChapter] ? (ru ? "письмо ✓" : "writing done") : (ru ? "письмо ждёт" : "writing to do")) : ""} &nbsp;·&nbsp; <a href="#" id="retake-quiz">${ru ? "пройти заново" : "retake"}</a></div>` : `<div class="quiz-done-note">${ru ? "Ответь на вопросы, чтобы продолжить" : "Answer the questions to continue"}</div>`}
       </div>`;
     $("reader-book-title").textContent = b.title;
     content.querySelector("#btn-chap-quiz").addEventListener("click", () => {
-      if (st.quizzes[currentChapter]) advanceChapter();
-      else startQuiz();
+      if (!st.quizzes[currentChapter]) startQuiz();
+      else proceedAfterQuiz();
     });
     const retake = content.querySelector("#retake-quiz");
     if (retake) retake.addEventListener("click", (e) => { e.preventDefault(); startQuiz(); });
@@ -386,7 +391,7 @@
     if (currentPage < pageCount - 1) { goToPage(currentPage + 1); return; }
     // end of chapter — quiz gate
     const st = bookState(currentBook.id);
-    if (st.quizzes[currentChapter]) advanceChapter();
+    if (st.quizzes[currentChapter]) proceedAfterQuiz();
     else startQuiz();
   }
   function prevPage() {
@@ -753,9 +758,111 @@
       </div>`;
     $("quiz-card").querySelector("#qr-reread").addEventListener("click", () => { closeQuiz(); goToPage(0); });
     $("quiz-card").querySelector("#qr-retry").addEventListener("click", startQuiz);
-    $("quiz-card").querySelector("#qr-continue").addEventListener("click", () => { closeQuiz(); advanceChapter(); });
+    $("quiz-card").querySelector("#qr-continue").addEventListener("click", () => {
+      const ch = b.chapters[currentChapter];
+      if (ch.writing && !st.writings[currentChapter]) { quizCtx = null; openWriting(); }
+      else { closeQuiz(); advanceChapter(); }
+    });
   }
   function closeQuiz() { $("quiz-overlay").classList.add("hidden"); quizCtx = null; if (currentBook && !$("reader-screen").classList.contains("hidden")) renderChapter(); }
+
+  /* ============================================================
+     WRITING TASK (AI-marked when online)
+     ============================================================ */
+  function proceedAfterQuiz() {
+    const ch = currentBook.chapters[currentChapter];
+    const st = bookState(currentBook.id);
+    if (ch.writing && !st.writings[currentChapter]) openWriting();
+    else advanceChapter();
+  }
+  function countWords(s) { return (s.trim().match(/\S+/g) || []).length; }
+  function openWriting() {
+    const b = currentBook;
+    const ru = b.lang === "ru";
+    const ch = b.chapters[currentChapter];
+    const w = ch.writing;
+    $("quiz-overlay").classList.remove("hidden");
+    const card = $("quiz-card");
+    card.innerHTML = `
+      <div class="quiz-eyebrow">${ru ? "Письменное задание" : "Writing task"}</div>
+      <div class="quiz-title">${esc(ch.title)}</div>
+      <p class="writing-prompt">${esc(w.prompt)}</p>
+      <textarea id="writing-input" rows="7" placeholder="${ru ? "Напиши свой ответ здесь…" : "Write your answer here…"}"></textarea>
+      <div class="writing-meta">
+        <span id="writing-count">0 ${ru ? "слов" : "words"}</span>
+        <span class="writing-hint">${ru ? "Ответ проверит ИИ-учитель" : "An AI teacher will check your answer"}</span>
+      </div>
+      <div id="writing-feedback"></div>
+      <div class="quiz-actions">
+        <button class="btn btn-ghost" id="writing-skip">${ru ? "Пропустить" : "Skip"}</button>
+        <button class="btn btn-primary" id="writing-check">${ru ? "Проверить" : "Check my writing"}</button>
+      </div>`;
+    const ta = card.querySelector("#writing-input");
+    ta.focus();
+    ta.addEventListener("input", () => {
+      card.querySelector("#writing-count").textContent = countWords(ta.value) + " " + (ru ? "слов" : "words");
+    });
+    card.querySelector("#writing-skip").addEventListener("click", () => { closeQuiz(); advanceChapter(); });
+    card.querySelector("#writing-check").addEventListener("click", submitWriting);
+  }
+  async function submitWriting() {
+    const b = currentBook;
+    const ru = b.lang === "ru";
+    const ch = b.chapters[currentChapter];
+    const w = ch.writing;
+    const card = $("quiz-card");
+    const ta = card.querySelector("#writing-input");
+    const answer = ta.value.trim();
+    const fb = card.querySelector("#writing-feedback");
+    if (countWords(answer) < (w.minWords ? Math.min(w.minWords, 15) : 12)) {
+      fb.innerHTML = `<div class="quiz-explain no">${ru ? "Напиши, пожалуйста, чуть больше — хотя бы несколько полных предложений." : "Please write a little more — at least a few full sentences."}</div>`;
+      return;
+    }
+    const checkBtn = card.querySelector("#writing-check");
+    checkBtn.disabled = true;
+    checkBtn.textContent = ru ? "Проверяю…" : "Checking…";
+    fb.innerHTML = `<div class="writing-checking">${ru ? "ИИ-учитель читает твой ответ…" : "The AI teacher is reading your answer…"}</div>`;
+    let result = null, offline = false;
+    try {
+      const res = await fetch("api/check-writing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: w.prompt, guidance: w.guidance || "", response: answer, lang: b.lang }),
+      });
+      if (res.ok) { result = (await res.json()).result; }
+      else { offline = true; }
+    } catch (e) { offline = true; }
+
+    const st = bookState(b.id);
+    if (result) {
+      st.writings[currentChapter] = { response: answer, score: result.score, feedback: result.feedback, ts: Date.now() };
+      state.stats.writingsChecked = (state.stats.writingsChecked || 0) + 1;
+      saveState();
+      const frac = result.score / 5;
+      const tier = frac >= 0.9 ? "gold" : frac >= 0.6 ? "good" : frac >= 0.4 ? "ok" : "low";
+      fb.innerHTML = `
+        <div class="writing-result">
+          <div class="score-ring tier-${tier}" style="--pct:${Math.round(frac * 100)}%"><span class="score-frac">${result.score}<small>/5</small></span></div>
+          <p class="writing-fb">${esc(result.feedback)}</p>
+          ${result.strength ? `<div class="wf-line wf-good"><strong>${ru ? "Хорошо:" : "Strength:"}</strong> ${esc(result.strength)}</div>` : ""}
+          ${result.improve ? `<div class="wf-line wf-improve"><strong>${ru ? "Улучшить:" : "To improve:"}</strong> ${esc(result.improve)}</div>` : ""}
+        </div>`;
+    } else {
+      // No AI marker available (static hosting / offline). Save the answer and
+      // let the reader self-check against the guidance.
+      st.writings[currentChapter] = { response: answer, selfChecked: true, ts: Date.now() };
+      saveState();
+      fb.innerHTML = `
+        <div class="quiz-explain">
+          <strong>${ru ? "Твой ответ сохранён." : "Your answer is saved."}</strong>
+          ${ru ? "Живую проверку ИИ можно включить в онлайн-версии. А пока сравни свой ответ с подсказкой:" : "Live AI marking runs in the online version. For now, compare your answer with this checklist:"}
+          ${w.guidance ? `<div class="wf-line" style="margin-top:8px">${esc(w.guidance)}</div>` : ""}
+        </div>`;
+    }
+    const actions = card.querySelector(".quiz-actions");
+    actions.innerHTML = `<button class="btn btn-primary" id="writing-continue">${ru ? "Дальше" : "Continue"}</button>`;
+    actions.querySelector("#writing-continue").addEventListener("click", () => { closeQuiz(); advanceChapter(); });
+  }
 
   function openBookFinished() {
     const b = currentBook;

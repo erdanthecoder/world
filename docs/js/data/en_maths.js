@@ -37,6 +37,7 @@ window.LIBRARY = (window.LIBRARY || []).concat([
         { q: "Solve: 3x = 12.", options: ["x = 4", "x = 9", "x = 36", "x = 15"], a: 0, explain: "Divide both sides by 3: x = 12 ÷ 3 = 4." },
         { q: "To solve 2x + 1 = 9, what should you do first?", options: ["Divide both sides by 2", "Subtract 1 from both sides", "Add 1 to both sides", "Multiply both sides by 2"], a: 1, explain: "Undo the last step first: subtract 1 to get 2x = 8, then divide by 2 to get x = 4." },
       ],
+      writing: { prompt: "Explain, step by step and in full sentences, how you would solve the equation 3x + 2 = 14. Say what you do to both sides and why.", guidance: "A strong answer keeps the equation balanced: subtract 2 from both sides to get 3x = 12, then divide both sides by 3 to get x = 4, and explains that whatever you do to one side you must do to the other. Checking the answer (3×4+2=14) is a nice touch.", minWords: 30 },
     },
     {
       title: "3 · Patterns, Sequences and Formulas",

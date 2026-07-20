@@ -66,6 +66,69 @@ def sync(code):
     return jsonify({"ok": True, "data": data})
 
 
+# ---- AI writing feedback ------------------------------------------------
+# Marks a short free-text answer with Claude and returns an encouraging
+# score + feedback. Needs ANTHROPIC_API_KEY in the environment; when the key
+# (or the library) is missing, the endpoint reports that clearly and the
+# client falls back to self-review. This is why writing tasks need the online
+# app — a static/offline page can't run the AI marker.
+WRITING_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "score": {"type": "integer", "enum": [0, 1, 2, 3, 4, 5]},
+        "feedback": {"type": "string"},
+        "strength": {"type": "string"},
+        "improve": {"type": "string"},
+    },
+    "required": ["score", "feedback", "strength", "improve"],
+    "additionalProperties": False,
+}
+
+
+@app.route("/api/check-writing", methods=["POST"])
+def check_writing():
+    body = request.get_json(silent=True) or {}
+    prompt = (body.get("prompt") or "").strip()
+    guidance = (body.get("guidance") or "").strip()
+    answer = (body.get("response") or "").strip()
+    lang = "Russian" if body.get("lang") == "ru" else "English"
+    if not answer:
+        return jsonify({"error": "empty"}), 400
+
+    try:
+        import anthropic
+    except ImportError:
+        return jsonify({"error": "unavailable", "reason": "The anthropic library is not installed."}), 503
+    if not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
+        return jsonify({"error": "unavailable", "reason": "AI marking is not configured on this server."}), 503
+
+    system = (
+        "You are a warm, encouraging Year 9 teacher marking a young student's short written answer. "
+        "Reply in " + lang + ". Be kind and specific. Score out of 5 for how well the answer addresses "
+        "the task and shows understanding (5 = excellent, 3 = solid, 1 = needs work). Always name one real "
+        "strength, and one concrete, doable improvement. Keep 'feedback' to 2-3 sentences a 14-year-old "
+        "will find motivating."
+    )
+    user = (
+        "TASK:\n" + prompt + "\n\n"
+        + ("WHAT A GOOD ANSWER INCLUDES:\n" + guidance + "\n\n" if guidance else "")
+        + "STUDENT'S ANSWER:\n" + answer
+    )
+    try:
+        client = anthropic.Anthropic()
+        msg = client.messages.create(
+            model="claude-opus-4-8",
+            max_tokens=1024,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+            output_config={"format": {"type": "json_schema", "schema": WRITING_SCHEMA}},
+        )
+        text = next((b.text for b in msg.content if b.type == "text"), "{}")
+        return jsonify({"ok": True, "result": json.loads(text)})
+    except Exception as exc:  # network, auth, rate limit, etc.
+        return jsonify({"error": "failed", "reason": str(exc)[:200]}), 502
+
+
 @app.route("/<path:filename>")
 def static_files(filename):
     return send_from_directory("docs", filename)
