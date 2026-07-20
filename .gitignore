@@ -1,0 +1,7 @@
+# ReadWorld sync store (server-side, do not commit)
+/data/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
