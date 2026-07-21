@@ -177,7 +177,18 @@
   <!-- Notes drawer -->
   <div class="drawer-backdrop hidden" id="notes-backdrop"></div>
   <aside class="notes-drawer hidden" id="notes-drawer">
-    <div class="toc-head">Notes &amp; highlights</div>
+    <div class="toc-head">Notes &amp; highlights
+      <button class="obs-link" id="btn-obsidian" title="Connect Obsidian">Obsidian</button>
+    </div>
+    <div class="book-note" id="book-note">
+      <label class="bn-label" id="bn-label">My note on this book</label>
+      <textarea id="bn-text" rows="5" placeholder="Write your thoughts about this book…"></textarea>
+      <div class="bn-foot">
+        <span class="bn-status" id="bn-status"></span>
+        <button class="btn btn-primary btn-sm" id="bn-save">Save</button>
+      </div>
+    </div>
+    <div class="notes-sub" id="notes-sub">Highlights</div>
     <div id="notes-list"></div>
   </aside>
 
