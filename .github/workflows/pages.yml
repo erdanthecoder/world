@@ -1,12 +1,13 @@
 name: Deploy ReadWorld to GitHub Pages
 
 # Publishes the static site in docs/ to GitHub Pages.
-# Runs on the default branch and on the active development branch, or on demand.
+# Deploys only from the default branch (the github-pages environment is
+# restricted to it); feature-branch pushes would only fail and, worse,
+# cancel an in-flight main deploy through the shared concurrency group.
 on:
   push:
     branches:
       - main
-      - claude/year-9-reading-platform-w7097c
     paths:
       - "docs/**"
       - ".github/workflows/pages.yml"
@@ -17,10 +18,11 @@ permissions:
   pages: write
   id-token: write
 
-# Allow one concurrent deployment; newer runs cancel older queued ones.
+# Allow one concurrent deployment; let an in-progress deploy finish rather
+# than cancelling it (a cancelled Pages deploy leaves the site un-updated).
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
