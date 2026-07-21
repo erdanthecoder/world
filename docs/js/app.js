@@ -905,35 +905,41 @@
   function openObsidian() {
     const c = obsCfg();
     const ru = currentBook && currentBook.lang === "ru";
+    const connected = obsReady();
     openModal(`
-      <h3>${ru ? "Подключить Obsition" : "Connect Obsition"}</h3>
-      <p class="obs-help">${ru ? "Заметки сохраняются как Markdown-файлы в проекте Obsition (репозиторий copilot) и синхронизируются в обе стороны. Нужен GitHub-токен с правом contents (read &amp; write) только на этот репозиторий. Токен хранится только в этом браузере." : "Notes are saved as Markdown files in your Obsition project (the copilot repo) and sync both ways. Needs a fine-grained GitHub token with Contents (read &amp; write) on just this repo. The token is stored only in this browser."}</p>
-      <label class="obs-field"><span>Repository (owner/repo)</span><input id="obs-repo" type="text" value="${esc(c.repo)}" placeholder="erdanthecoder/copilot"></label>
-      <label class="obs-field"><span>Folder</span><input id="obs-folder" type="text" value="${esc(c.folder)}" placeholder="ReadWorld"></label>
-      <label class="obs-field"><span>GitHub token</span><input id="obs-token" type="password" value="${esc(c.token)}" placeholder="github_pat_…" autocomplete="off"></label>
-      <a class="obs-tokenlink" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">${ru ? "Создать токен на GitHub →" : "Create a token on GitHub →"}</a>
+      <h3>${ru ? "Obsition" : "Obsition"}</h3>
+      <p class="obs-help">${ru ? "Заметки синхронизируются с проектом Obsition — в обе стороны, автоматически. Настраивается один раз: вставь GitHub-токен ниже. Больше ничего скачивать или настраивать не нужно." : "Notes sync with your Obsition project — both ways, automatically. One-time setup: paste a GitHub token below. Nothing to download, nothing else to set up."}</p>
+      <label class="obs-field"><span>${ru ? "GitHub-токен" : "GitHub token"}</span><input id="obs-token" type="password" value="${esc(c.token)}" placeholder="github_pat_…" autocomplete="off"></label>
+      <a class="obs-tokenlink" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">${ru ? "Получить токен на GitHub →" : "Get a token on GitHub →"}</a>
       <div class="modal-actions">
+        ${connected ? `<button class="btn btn-ghost" id="obs-disc" style="margin-right:auto">${ru ? "Отключить" : "Disconnect"}</button>` : ""}
         <button class="btn btn-ghost" id="obs-cancel">${ru ? "Отмена" : "Cancel"}</button>
-        <button class="btn btn-primary" id="obs-connect">${ru ? "Подключить и проверить" : "Connect &amp; test"}</button>
+        <button class="btn btn-primary" id="obs-connect">${ru ? "Подключить" : "Connect"}</button>
       </div>
       <div class="obs-result" id="obs-result"></div>`);
     const card = $("modal-card");
     card.querySelector("#obs-cancel").addEventListener("click", closeModal);
+    const disc = card.querySelector("#obs-disc");
+    if (disc) disc.addEventListener("click", () => {
+      c.token = ""; c.branch = ""; saveState();
+      $("btn-obsidian").textContent = "Obsition"; closeModal(); renderBookNote();
+    });
     card.querySelector("#obs-connect").addEventListener("click", async () => {
-      c.repo = card.querySelector("#obs-repo").value.trim();
-      c.folder = (card.querySelector("#obs-folder").value.trim() || "ReadWorld");
+      // repo + folder stay at their configured defaults (copilot / ReadWorld);
+      // the one-time setup is just the token.
       c.token = card.querySelector("#obs-token").value.trim();
       c.branch = "";
       saveState();
       const out = card.querySelector("#obs-result");
+      if (!c.token) { out.textContent = ru ? "Вставь токен." : "Paste a token."; out.className = "obs-result err"; return; }
       out.textContent = ru ? "Проверка…" : "Testing…"; out.className = "obs-result wait";
       try {
-        const br = await ghBranch();
-        out.textContent = (ru ? "Подключено. Ветка: " : "Connected. Branch: ") + br; out.className = "obs-result ok";
+        await ghBranch();
+        out.textContent = ru ? "Подключено ✓" : "Connected ✓"; out.className = "obs-result ok";
         $("btn-obsidian").textContent = "Obsition ✓";
-        setTimeout(() => { closeModal(); renderBookNote(); }, 900);
+        setTimeout(() => { closeModal(); renderBookNote(); }, 800);
       } catch (e) {
-        out.textContent = (ru ? "Ошибка: " : "Failed: ") + e.message + (ru ? " — проверь токен и доступ к репозиторию." : " — check the token and repo access."); out.className = "obs-result err";
+        out.textContent = (ru ? "Не удалось: " : "Failed: ") + e.message + (ru ? " — проверь токен." : " — check the token."); out.className = "obs-result err";
       }
     });
   }
