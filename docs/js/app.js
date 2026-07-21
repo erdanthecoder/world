@@ -327,6 +327,7 @@
     if (!shown) shelves.innerHTML = `<div class="lib-empty">No books match — try another filter.<br>Книги не найдены — попробуй другой фильтр.</div>`;
   }
   function initLibrary() {
+    $("btn-detail-back").addEventListener("click", () => { renderLibrary(); show("library-screen"); });
     $("lib-filters").addEventListener("click", (e) => {
       const chip = e.target.closest(".chip"); if (!chip) return;
       $("lib-filters").querySelectorAll(".chip").forEach((c) => c.classList.remove("active"));
