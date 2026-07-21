@@ -291,13 +291,23 @@ input { font-family: inherit; }
 .detail-chapters { width: 100%; margin-top: 26px; border-top: 1px solid rgba(255,255,255,.1); padding-top: 18px; }
 .detail-chapters h3 { font-size: 15px; margin-bottom: 12px; color: #ececf5; }
 .dchap {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  display: flex; align-items: center; gap: 12px;
   padding: 11px 14px; border-radius: 12px; background: rgba(255,255,255,.05);
   margin-bottom: 8px; font-size: 14px; width: 100%; border: 1px solid transparent; color: #e2e2ef; text-align: left;
+  transition: border-color .15s ease, background .15s ease, transform .15s ease;
 }
-.dchap:hover { border-color: rgba(255,255,255,.2); }
-.dchap .dchap-state { font-size: 12px; color: #9a9ab5; flex: 0 0 auto; }
-.dchap .done { color: #57d98e; }
+.dchap:hover { border-color: rgba(255,255,255,.22); background: rgba(255,255,255,.08); transform: translateX(2px); }
+.dchap .dchap-num {
+  flex: 0 0 auto; width: 28px; height: 28px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+  color: #cfd0e6; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09);
+}
+.dchap .dchap-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dchap .dchap-state { font-size: 11.5px; color: #9a9ab5; flex: 0 0 auto; padding: 3px 9px; border-radius: 999px; background: rgba(255,255,255,.05); }
+.dchap .dchap-state.has-q { color: #ffb877; background: rgba(255,150,60,.12); }
+.dchap .dchap-state.has-w { color: #8fb8ff; background: rgba(90,150,255,.13); }
+.dchap .dchap-state.done { color: #57d98e; background: rgba(70,210,130,.14); }
 
 /* ============================================================
    READER  (theme-driven)
