@@ -252,7 +252,7 @@ window.LIBRARY = (window.LIBRARY || []).concat([
 {
   id: "fic-clockwork", lang: "en", category: "fiction", year: 7,
   title: "The Clockwork City", author: "ReadWorld Originals",
-  cover: { style: "bold", c1: "#1f7f96", c2: "#0a2c3a" },
+  cover: { img: "img/covers/clockwork.jpg", style: "bold", c1: "#1f7f96", c2: "#0a2c3a" },
   description: "A longer adventure — a full eight-chapter story to sink into. In the city of Ember Hollow, every clock is kept running by hand, and time itself is beginning to fail. When young Wren Ashby follows a strange knocking beneath her workshop floor, she meets a small copper machine with a very big secret, and sets out to wind the greatest clock the world has ever forgotten.",
   chapters: [
     {
