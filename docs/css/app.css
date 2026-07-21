@@ -312,6 +312,46 @@ input { font-family: inherit; }
 .dchap .dchap-state.has-w { color: #8fb8ff; background: rgba(90,150,255,.13); }
 .dchap .dchap-state.done { color: #57d98e; background: rgba(70,210,130,.14); }
 
+/* ---- book note + Obsidian sync (notes drawer) ---- */
+.toc-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.obs-link {
+  font-size: 11.5px; font-weight: 700; letter-spacing: .02em; cursor: pointer;
+  color: #b79cff; background: rgba(140,110,255,.14); border: 1px solid rgba(140,110,255,.28);
+  border-radius: 999px; padding: 3px 10px;
+}
+.obs-link:hover { background: rgba(140,110,255,.24); }
+.book-note { padding: 12px 14px 4px; }
+.bn-label { display: block; font-size: 12px; font-weight: 700; color: var(--faint); margin-bottom: 6px; letter-spacing: .02em; }
+#bn-text {
+  width: 100%; box-sizing: border-box; resize: vertical; min-height: 96px;
+  background: rgba(128,128,128,.10); border: 1px solid rgba(128,128,128,.30);
+  border-radius: 10px; color: var(--ink); padding: 10px 12px; font-size: 14px; line-height: 1.5;
+  font-family: inherit;
+}
+#bn-text::placeholder { color: var(--faint); }
+#bn-text:focus { outline: none; border-color: var(--accent); }
+.bn-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 0 4px; min-height: 26px; }
+.bn-status { font-size: 11.5px; color: var(--faint); }
+.bn-status.ok { color: #1c9c53; } .bn-status.err { color: #d6413b; } .bn-status.wait { color: #b8860b; }
+#reader-screen.th-dark .bn-status.ok { color: #57d98e; } #reader-screen.th-dark .bn-status.err { color: #ff8f8f; } #reader-screen.th-dark .bn-status.wait { color: #ffd27a; }
+.btn-sm { padding: 6px 14px; font-size: 13px; }
+.notes-sub { padding: 6px 14px 2px; font-size: 12px; font-weight: 700; color: var(--faint); letter-spacing: .03em; text-transform: uppercase; }
+/* Obsidian settings modal (lives inside the light modal card) */
+.obs-help { font-size: 13px; color: #55555f; line-height: 1.55; margin: 0 0 14px; }
+.obs-field { display: block; margin-bottom: 12px; }
+.obs-field span { display: block; font-size: 12px; color: #6a6a78; margin-bottom: 5px; }
+.obs-field input {
+  width: 100%; box-sizing: border-box; background: #fff; color: #1a1a22;
+  border: 1.5px solid #d8d8e2; border-radius: 10px;
+  padding: 10px 12px; font-size: 15px; font-family: inherit; margin: 0;
+}
+.obs-field input:focus { outline: none; border-color: #ff7a2f; }
+.obs-field input::placeholder { color: #a6a6b2; }
+.obs-tokenlink { display: inline-block; font-size: 12.5px; color: #7b41d6; margin: 2px 0 4px; text-decoration: none; font-weight: 600; }
+.obs-tokenlink:hover { text-decoration: underline; }
+.obs-result { font-size: 12.5px; margin-top: 10px; min-height: 16px; }
+.obs-result.ok { color: #1c9c53; } .obs-result.err { color: #d6413b; } .obs-result.wait { color: #b8860b; }
+
 /* ============================================================
    READER  (theme-driven)
    ============================================================ */

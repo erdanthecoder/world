@@ -25,6 +25,7 @@
       settings: { fontSize: 19, lineHeight: 1.75, font: "serif", theme: "sepia" },
       books: {},                   // bookId -> { chapter, page, quizzes: {chIdx: {score,total}}, finished, lastRead }
       stats: { quizzesTaken: 0, correct: 0, answered: 0, chaptersRead: 0 },
+      obsidian: { token: "", repo: "erdanthecoder/copilot", folder: "ReadWorld", branch: "" },
     };
   }
   function loadState() {
@@ -55,10 +56,13 @@
   async function pushSync() {
     if (!state.profile || !state.profile.syncCode) return;
     try {
+      // Never send the GitHub token to the sync server — it stays on-device.
+      const payload = Object.assign({}, state);
+      if (state.obsidian) payload.obsidian = Object.assign({}, state.obsidian, { token: "" });
       await fetch("/api/sync/" + state.profile.syncCode, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(state),
+        body: JSON.stringify(payload),
       });
     } catch (e) { /* offline is fine — localStorage is the source of truth */ }
   }
@@ -68,6 +72,70 @@
     const data = await res.json();
     return data.data;
   }
+  /* ---------------- Obsidian (GitHub) two-way notes ----------------
+     Notes written here are stored as one Markdown file per book in the
+     user's vault repo (default erdanthecoder/copilot, folder ReadWorld/).
+     The write happens in the browser with a fine-grained GitHub token the
+     user pastes in once (kept only in localStorage on their device), so no
+     backend is needed. Notes edited in Obsidian flow back on next open. */
+  function obsCfg() {
+    if (!state.obsidian) state.obsidian = { token: "", repo: "erdanthecoder/copilot", folder: "ReadWorld", branch: "" };
+    return state.obsidian;
+  }
+  function obsReady() { const c = obsCfg(); return !!(c.token && c.repo); }
+  function b64encUtf8(str) {
+    const bytes = new TextEncoder().encode(str);
+    let bin = ""; bytes.forEach((b) => (bin += String.fromCharCode(b)));
+    return btoa(bin);
+  }
+  function b64decUtf8(b64) {
+    const bin = atob((b64 || "").replace(/\n/g, ""));
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+  function ghHeaders() {
+    return { Authorization: "Bearer " + obsCfg().token, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" };
+  }
+  async function ghBranch() {
+    const c = obsCfg();
+    if (c.branch) return c.branch;
+    const res = await fetch("https://api.github.com/repos/" + c.repo, { headers: ghHeaders(), cache: "no-store" });
+    if (!res.ok) throw new Error("repo " + res.status);
+    c.branch = (await res.json()).default_branch || "main";
+    saveState();
+    return c.branch;
+  }
+  function safeFileName(s) {
+    return (s || "note").replace(/[\/\\:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 90);
+  }
+  function notePath(book) { return obsCfg().folder.replace(/\/+$/,"") + "/" + safeFileName(book.title) + ".md"; }
+  function buildNoteMd(book, note) {
+    return `---\nreadworld-id: ${book.id}\ntitle: "${(book.title || "").replace(/"/g, "'")}"\nauthor: "${(book.author || "").replace(/"/g, "'")}"\n---\n\n` + (note || "");
+  }
+  function stripFrontmatter(raw) {
+    const m = /^---\n[\s\S]*?\n---\n?/.exec(raw || "");
+    return (m ? raw.slice(m[0].length) : (raw || "")).replace(/^\s+/, "");
+  }
+  async function ghGetNote(book) {
+    const c = obsCfg();
+    const url = "https://api.github.com/repos/" + c.repo + "/contents/" + encodeURI(notePath(book)) + "?ref=" + encodeURIComponent(await ghBranch()) + "&_=" + Date.now();
+    const res = await fetch(url, { headers: ghHeaders(), cache: "no-store" });
+    if (res.status === 404) return { text: null, sha: null };
+    if (!res.ok) throw new Error("get " + res.status);
+    const data = await res.json();
+    return { text: stripFrontmatter(b64decUtf8(data.content)), sha: data.sha };
+  }
+  async function ghPutNote(book, note, sha) {
+    const c = obsCfg();
+    const url = "https://api.github.com/repos/" + c.repo + "/contents/" + encodeURI(notePath(book));
+    const body = { message: "ReadWorld note: " + book.title, content: b64encUtf8(buildNoteMd(book, note)), branch: await ghBranch() };
+    if (sha) body.sha = sha;
+    const res = await fetch(url, { method: "PUT", headers: ghHeaders(), body: JSON.stringify(body) });
+    if (!res.ok) { const t = await res.text().catch(() => ""); throw new Error("put " + res.status + " " + t.slice(0, 120)); }
+    return (await res.json()).content.sha;
+  }
+
   function makeSyncCode() {
     const abc = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
     let s = "";
@@ -476,7 +544,8 @@
   }
   function totalHighlights(id) { const st = state.books[id]; return st && st.highlights ? st.highlights.length : 0; }
   function updateNoteCount() {
-    const n = totalHighlights(currentBook.id);
+    const st = state.books[currentBook.id];
+    const n = totalHighlights(currentBook.id) + (st && st.bookNote && st.bookNote.trim() ? 1 : 0);
     const el = $("note-count");
     el.textContent = n;
     el.classList.toggle("hidden", n === 0);
@@ -619,6 +688,8 @@
     // Notes
     $("btn-notes").addEventListener("click", openNotes);
     $("notes-backdrop").addEventListener("click", closeNotes);
+    $("bn-save").addEventListener("click", saveBookNote);
+    $("btn-obsidian").addEventListener("click", openObsidian);
     // settings popover
     $("btn-settings").addEventListener("click", () => $("settings-pop").classList.toggle("hidden"));
     document.addEventListener("click", (e) => {
@@ -776,8 +847,95 @@
     const keep = currentPage; renderChapter(); requestAnimationFrame(() => goToPage(keep, false));
   }
 
-  function openNotes() { closeTOC(); renderNotesList(); $("notes-drawer").classList.remove("hidden"); $("notes-backdrop").classList.remove("hidden"); }
+  function openNotes() { closeTOC(); renderNotesList(); renderBookNote(); $("notes-drawer").classList.remove("hidden"); $("notes-backdrop").classList.remove("hidden"); }
   function closeNotes() { $("notes-drawer").classList.add("hidden"); $("notes-backdrop").classList.add("hidden"); }
+
+  /* ---- book-level note (syncs to Obsidian) ---- */
+  function bnStatus(msg, cls) {
+    const el = $("bn-status"); if (!el) return;
+    el.textContent = msg || ""; el.className = "bn-status" + (cls ? " " + cls : "");
+  }
+  async function renderBookNote() {
+    const b = currentBook; if (!b) return;
+    const ru = b.lang === "ru";
+    const st = bookState(b.id);
+    $("bn-label").textContent = ru ? "Моя заметка о книге" : "My note on this book";
+    $("notes-sub").textContent = ru ? "Выделения" : "Highlights";
+    $("bn-save").textContent = ru ? "Сохранить" : "Save";
+    $("btn-obsidian").textContent = obsReady() ? "Obsidian ✓" : "Obsidian";
+    const ta = $("bn-text");
+    ta.placeholder = ru ? "Запиши свои мысли об этой книге…" : "Write your thoughts about this book…";
+    ta.value = st.bookNote || "";
+    if (obsReady()) {
+      bnStatus(ru ? "Загрузка из Obsidian…" : "Loading from Obsidian…", "wait");
+      try {
+        const { text, sha } = await ghGetNote(b);
+        st.bookNoteSha = sha;
+        if (text != null && text.trim() !== (st.bookNote || "").trim()) {
+          // Obsidian has a newer/other version — show it (last edit wins on open)
+          if (!ta.value.trim() || text.trim()) { st.bookNote = text.trim(); ta.value = st.bookNote; }
+        }
+        saveState();
+        bnStatus(ru ? "Связано с Obsidian" : "Synced with Obsidian", "ok");
+      } catch (e) {
+        bnStatus((ru ? "Оффлайн — сохранено на устройстве" : "Offline — saved on device"), "");
+      }
+    } else {
+      bnStatus(ru ? "Подключи Obsidian, чтобы синхронизировать" : "Connect Obsidian to sync", "");
+    }
+  }
+  async function saveBookNote() {
+    const b = currentBook; if (!b) return;
+    const ru = b.lang === "ru";
+    const st = bookState(b.id);
+    st.bookNote = $("bn-text").value.trim();
+    saveState();
+    updateNoteCount();
+    if (!obsReady()) { bnStatus(ru ? "Сохранено на устройстве" : "Saved on this device", "ok"); return; }
+    bnStatus(ru ? "Сохранение в Obsidian…" : "Saving to Obsidian…", "wait");
+    try {
+      st.bookNoteSha = await ghPutNote(b, st.bookNote, st.bookNoteSha);
+      saveState();
+      bnStatus(ru ? "Сохранено в Obsidian ✓" : "Saved to Obsidian ✓", "ok");
+    } catch (e) {
+      bnStatus((ru ? "Не удалось: " : "Sync failed: ") + e.message, "err");
+    }
+  }
+  function openObsidian() {
+    const c = obsCfg();
+    const ru = currentBook && currentBook.lang === "ru";
+    openModal(`
+      <h3>${ru ? "Подключить Obsidian" : "Connect Obsidian"}</h3>
+      <p class="obs-help">${ru ? "Заметки сохраняются как Markdown-файлы в твоём репозитории и открываются в Obsidian. Нужен GitHub-токен с правом contents (read &amp; write) только на этот репозиторий. Токен хранится только в этом браузере." : "Notes are saved as Markdown files in your repo and open in Obsidian. Needs a fine-grained GitHub token with Contents (read &amp; write) on just this repo. The token is stored only in this browser."}</p>
+      <label class="obs-field"><span>Repository (owner/repo)</span><input id="obs-repo" type="text" value="${esc(c.repo)}" placeholder="erdanthecoder/copilot"></label>
+      <label class="obs-field"><span>Folder</span><input id="obs-folder" type="text" value="${esc(c.folder)}" placeholder="ReadWorld"></label>
+      <label class="obs-field"><span>GitHub token</span><input id="obs-token" type="password" value="${esc(c.token)}" placeholder="github_pat_…" autocomplete="off"></label>
+      <a class="obs-tokenlink" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">${ru ? "Создать токен на GitHub →" : "Create a token on GitHub →"}</a>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="obs-cancel">${ru ? "Отмена" : "Cancel"}</button>
+        <button class="btn btn-primary" id="obs-connect">${ru ? "Подключить и проверить" : "Connect &amp; test"}</button>
+      </div>
+      <div class="obs-result" id="obs-result"></div>`);
+    const card = $("modal-card");
+    card.querySelector("#obs-cancel").addEventListener("click", closeModal);
+    card.querySelector("#obs-connect").addEventListener("click", async () => {
+      c.repo = card.querySelector("#obs-repo").value.trim();
+      c.folder = (card.querySelector("#obs-folder").value.trim() || "ReadWorld");
+      c.token = card.querySelector("#obs-token").value.trim();
+      c.branch = "";
+      saveState();
+      const out = card.querySelector("#obs-result");
+      out.textContent = ru ? "Проверка…" : "Testing…"; out.className = "obs-result wait";
+      try {
+        const br = await ghBranch();
+        out.textContent = (ru ? "Подключено. Ветка: " : "Connected. Branch: ") + br; out.className = "obs-result ok";
+        $("btn-obsidian").textContent = "Obsidian ✓";
+        setTimeout(() => { closeModal(); renderBookNote(); }, 900);
+      } catch (e) {
+        out.textContent = (ru ? "Ошибка: " : "Failed: ") + e.message + (ru ? " — проверь токен и доступ к репозиторию." : " — check the token and repo access."); out.className = "obs-result err";
+      }
+    });
+  }
   function renderNotesList() {
     const b = currentBook;
     const st = bookState(b.id);
