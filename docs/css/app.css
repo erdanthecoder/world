@@ -312,7 +312,7 @@ input { font-family: inherit; }
 .dchap .dchap-state.has-w { color: #8fb8ff; background: rgba(90,150,255,.13); }
 .dchap .dchap-state.done { color: #57d98e; background: rgba(70,210,130,.14); }
 
-/* ---- book note + Obsidian sync (notes drawer) ---- */
+/* ---- book note + Obsition sync (notes drawer) ---- */
 .toc-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .obs-link {
   font-size: 11.5px; font-weight: 700; letter-spacing: .02em; cursor: pointer;
@@ -336,7 +336,7 @@ input { font-family: inherit; }
 #reader-screen.th-dark .bn-status.ok { color: #57d98e; } #reader-screen.th-dark .bn-status.err { color: #ff8f8f; } #reader-screen.th-dark .bn-status.wait { color: #ffd27a; }
 .btn-sm { padding: 6px 14px; font-size: 13px; }
 .notes-sub { padding: 6px 14px 2px; font-size: 12px; font-weight: 700; color: var(--faint); letter-spacing: .03em; text-transform: uppercase; }
-/* Obsidian settings modal (lives inside the light modal card) */
+/* Obsition settings modal (lives inside the light modal card) */
 .obs-help { font-size: 13px; color: #55555f; line-height: 1.55; margin: 0 0 14px; }
 .obs-field { display: block; margin-bottom: 12px; }
 .obs-field span { display: block; font-size: 12px; color: #6a6a78; margin-bottom: 5px; }
