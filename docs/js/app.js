@@ -178,6 +178,36 @@
     c.notesSha = (await res.json()).content.sha; saveState();
   }
 
+  /* ---- READ notes written in Obsition (no token needed for a public repo) ----
+     People write notes in the obsition (copilot) repo, in "ReadWorld Notes.md",
+     under a "## Book title" heading. ReadWorld fetches and shows them. */
+  async function fetchSharedNotes() {
+    const c = obsCfg();
+    const p = encodeURI(notesFilePath());
+    for (const br of ["main", "master"]) {
+      try {
+        const r = await fetch(`https://raw.githubusercontent.com/${c.repo}/${br}/${p}?_=${Date.now()}`, { cache: "no-store" });
+        if (r.ok) return await r.text();
+      } catch (e) { /* try next */ }
+    }
+    return null;
+  }
+  function parseSharedNotes(raw) {
+    const out = {};
+    if (!raw) return out;
+    raw.split(/\n(?=##\s)/).forEach((sec) => {
+      const m = /^##\s+(.+)$/m.exec(sec);
+      if (!m) return;
+      const head = m[1].split(" — ")[0].split(" · ")[0].trim().toLowerCase();
+      const book = LIBRARY.find((b) => b.title.trim().toLowerCase() === head);
+      if (!book) return;
+      let body = sec.replace(/^##\s+.+$/m, "").replace(/<!--[\s\S]*?-->/g, "");
+      body = body.split(/\n\*\*Highlights\*\*/i)[0].trim();
+      if (body) out[book.id] = body;
+    });
+    return out;
+  }
+
   function makeSyncCode() {
     const abc = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
     let s = "";
@@ -250,22 +280,25 @@
   }
 
   /* ---- consolidated "ReadWorld Notes" view: every book, its note + highlights ---- */
-  function openAllNotes() {
-    const items = LIBRARY.filter((b) => {
+  function renderAllNotes(shared) {
+    const ids = new Set();
+    LIBRARY.forEach((b) => {
       const st = state.books[b.id];
-      return st && ((st.bookNote && st.bookNote.trim()) || (st.highlights && st.highlights.length));
+      if ((st && ((st.bookNote && st.bookNote.trim()) || (st.highlights && st.highlights.length))) || (shared && shared[b.id])) ids.add(b.id);
     });
     let html = `<h3>ReadWorld Notes</h3>`;
-    if (obsReady()) html += `<p class="an-synced">Synced to your Obsition project · <b>ReadWorld Notes.md</b></p>`;
-    if (!items.length) {
-      html += `<p class="obs-help">No notes yet. Open a book, write a note or highlight a passage — everything you save shows up here, in one place.</p>`;
+    html += `<p class="an-synced">Notes written in <b>Obsition</b> (the copilot project) show up here automatically.</p>`;
+    if (!ids.size) {
+      html += `<p class="obs-help">No notes yet. Write a note here in a book, or add one in Obsition under a “## Book title” heading — either way it appears here.</p>`;
     } else {
-      html += `<div class="allnotes">` + items.map((b) => {
-        const st = state.books[b.id];
+      html += `<div class="allnotes">` + LIBRARY.filter((b) => ids.has(b.id)).map((b) => {
+        const st = state.books[b.id] || {};
         const hls = (st.highlights || []).slice().sort((a, c) => a.ch - c.ch || a.pi - c.pi || a.start - c.start);
+        const sh = shared && shared[b.id];
         return `<div class="an-book">
           <div class="an-title">${esc(b.title)} <span>· ${esc(b.author)}</span></div>
           ${st.bookNote && st.bookNote.trim() ? `<p class="an-note">${esc(st.bookNote)}</p>` : ""}
+          ${sh ? `<p class="an-note an-shared"><span class="an-tag">Obsition</span>${esc(sh)}</p>` : ""}
           ${hls.length ? `<ul class="an-hls">` + hls.map((h) => `<li>“${esc(h.text)}”${h.note ? ` — <em>${esc(h.note)}</em>` : ""}</li>`).join("") + `</ul>` : ""}
         </div>`;
       }).join("") + `</div>`;
@@ -273,6 +306,15 @@
     html += `<div class="modal-actions"><button class="btn btn-primary" id="an-close">Close</button></div>`;
     openModal(html);
     $("modal-card").querySelector("#an-close").addEventListener("click", closeModal);
+  }
+  async function openAllNotes() {
+    renderAllNotes(null);                       // show local notes instantly
+    try {
+      const shared = parseSharedNotes(await fetchSharedNotes());
+      if ($("modal-overlay") && !$("modal-overlay").classList.contains("hidden") && $("modal-card").querySelector("#an-close")) {
+        renderAllNotes(shared);                 // then fold in notes from Obsition
+      }
+    } catch (e) { /* offline — local view already shown */ }
   }
 
   /* ============================================================
