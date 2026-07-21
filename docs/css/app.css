@@ -351,6 +351,21 @@ input { font-family: inherit; }
 .obs-tokenlink:hover { text-decoration: underline; }
 .obs-result { font-size: 12.5px; margin-top: 10px; min-height: 16px; }
 .obs-result.ok { color: #1c9c53; } .obs-result.err { color: #d6413b; } .obs-result.wait { color: #b8860b; }
+/* welcome-screen notes/connect row */
+.welcome-notes { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+.nd-actions { display: inline-flex; gap: 6px; }
+.obs-link-alt { color: var(--accent, #b79cff); background: rgba(128,128,128,.12); border-color: rgba(128,128,128,.28); }
+/* consolidated ReadWorld Notes view (inside the light modal) */
+.an-synced { font-size: 12.5px; color: #1c9c53; margin: -4px 0 12px; }
+.allnotes { max-height: 56vh; overflow-y: auto; margin-bottom: 14px; text-align: left; }
+.an-book { padding: 12px 0; border-top: 1px solid #ececf2; }
+.an-book:first-child { border-top: none; }
+.an-title { font-weight: 700; font-size: 15px; color: #1a1a22; }
+.an-title span { font-weight: 400; color: #8a8a95; }
+.an-note { font-size: 14px; line-height: 1.55; color: #33333e; margin: 6px 0 4px; white-space: pre-wrap; }
+.an-hls { margin: 6px 0 0; padding-left: 18px; }
+.an-hls li { font-size: 13px; line-height: 1.5; color: #55555f; margin-bottom: 4px; }
+.an-hls li em { color: #7b41d6; font-style: normal; }
 
 /* ============================================================
    READER  (theme-driven)
