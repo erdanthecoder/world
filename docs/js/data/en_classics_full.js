@@ -3,7 +3,7 @@ window.LIBRARY = (window.LIBRARY || []).concat([
 {
   id: "fic-oz", lang: "en", category: "fiction", full: true, year: 6,
   title: "The Wonderful Wizard of Oz", author: "L. Frank Baum",
-  cover: { style: "band", c1: "#1f9d55", c2: "#0a3f2a" },
+  cover: { img: "img/covers/oz.jpg", style: "band", c1: "#1f9d55", c2: "#0a3f2a" },
   description: "The complete, unabridged classic. A Kansas cyclone sweeps Dorothy and her dog Toto to the magical land of Oz. To find her way home she follows the road of yellow brick to the Emerald City, gathering three unlikely friends — a Scarecrow, a Tin Woodman and a Cowardly Lion — each hoping the great Wizard can grant his heart's wish.",
   chapters: [
     {
@@ -1244,7 +1244,7 @@ window.LIBRARY = (window.LIBRARY || []).concat([
 {
   id: "fic-peterpan", lang: "en", category: "fiction", full: true, year: 7,
   title: "Peter Pan", author: "J. M. Barrie",
-  cover: { style: "framed", c1: "#2b6cb0", c2: "#10233b" },
+  cover: { img: "img/covers/peterpan.jpg", style: "framed", c1: "#2b6cb0", c2: "#10233b" },
   description: "The complete, unabridged classic. Peter Pan, the boy who refuses to grow up, flies into the Darlings' nursery one night and carries Wendy, John and Michael away to the Neverland — a world of fairies, mermaids, the Lost Boys, and the fearsome pirate Captain Hook.",
   chapters: [
     {
@@ -2858,7 +2858,7 @@ window.LIBRARY = (window.LIBRARY || []).concat([
 {
   id: "fic-jungle", lang: "en", category: "fiction", full: true, year: 7,
   title: "The Jungle Book", author: "Rudyard Kipling",
-  cover: { style: "bold", c1: "#b7791f", c2: "#4a2c0a" },
+  cover: { img: "img/covers/jungle.jpg", style: "bold", c1: "#b7791f", c2: "#4a2c0a" },
   description: "The complete, unabridged collection of stories. Raised by wolves in the Indian jungle, the man-cub Mowgli learns the Law of the Jungle from Baloo the bear and Bagheera the panther, while the tiger Shere Khan hunts him. Includes the famous tales of the White Seal and the brave mongoose Rikki-Tikki-Tavi.",
   chapters: [
     {

@@ -172,6 +172,13 @@
     return COVER_STYLES[h % COVER_STYLES.length];
   }
   function coverHTML(b, extraStyle) {
+    if (b.cover && b.cover.img) {
+      return `<div class="book-cover cover-photo cat-${b.category}" style="${extraStyle || ""}">
+        <img class="cover-photo-img" src="${b.cover.img}" alt="${esc(b.title)} — cover art" loading="lazy" decoding="async">
+        <div class="cover-sheen" aria-hidden="true"></div>
+        <div class="cover-spine"></div>
+      </div>`;
+    }
     const ru = b.lang === "ru";
     const K = esc((ru ? CAT_LABEL_RU[b.category] : CAT_LABEL[b.category]) + " · " + (ru ? b.year + " кл." : "Year " + b.year));
     const T = esc(b.title), A = esc(b.author);

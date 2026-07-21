@@ -145,6 +145,9 @@ input { font-family: inherit; }
   color: #fff; transition: box-shadow .18s;
 }
 .book-card:hover .book-cover { box-shadow: 0 22px 42px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.08), inset 3px 0 7px rgba(255,255,255,.18), inset -2px 0 8px rgba(0,0,0,.32); }
+/* photographic (real cover-art) covers */
+.cover-photo { background: #12131a; }
+.cover-photo-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
 /* woven-cloth texture + top sheen give the covers depth */
 .cover-texture {
   position: absolute; inset: 0; pointer-events: none; opacity: .5;
