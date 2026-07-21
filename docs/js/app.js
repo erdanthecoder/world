@@ -72,12 +72,13 @@
     const data = await res.json();
     return data.data;
   }
-  /* ---------------- Obsidian (GitHub) two-way notes ----------------
+  /* ---------------- Obsition project (GitHub) two-way notes ----------------
      Notes written here are stored as one Markdown file per book in the
-     user's vault repo (default erdanthecoder/copilot, folder ReadWorld/).
+     linked project repo (default erdanthecoder/copilot, folder ReadWorld/).
      The write happens in the browser with a fine-grained GitHub token the
      user pastes in once (kept only in localStorage on their device), so no
-     backend is needed. Notes edited in Obsidian flow back on next open. */
+     backend is needed. Notes edited in the copilot repo flow back on next
+     open — connecting the two projects together, both directions. */
   function obsCfg() {
     if (!state.obsidian) state.obsidian = { token: "", repo: "erdanthecoder/copilot", folder: "ReadWorld", branch: "" };
     return state.obsidian;
@@ -850,7 +851,7 @@
   function openNotes() { closeTOC(); renderNotesList(); renderBookNote(); $("notes-drawer").classList.remove("hidden"); $("notes-backdrop").classList.remove("hidden"); }
   function closeNotes() { $("notes-drawer").classList.add("hidden"); $("notes-backdrop").classList.add("hidden"); }
 
-  /* ---- book-level note (syncs to Obsidian) ---- */
+  /* ---- book-level note (syncs to Obsition) ---- */
   function bnStatus(msg, cls) {
     const el = $("bn-status"); if (!el) return;
     el.textContent = msg || ""; el.className = "bn-status" + (cls ? " " + cls : "");
@@ -862,26 +863,26 @@
     $("bn-label").textContent = ru ? "Моя заметка о книге" : "My note on this book";
     $("notes-sub").textContent = ru ? "Выделения" : "Highlights";
     $("bn-save").textContent = ru ? "Сохранить" : "Save";
-    $("btn-obsidian").textContent = obsReady() ? "Obsidian ✓" : "Obsidian";
+    $("btn-obsidian").textContent = obsReady() ? "Obsition ✓" : "Obsition";
     const ta = $("bn-text");
     ta.placeholder = ru ? "Запиши свои мысли об этой книге…" : "Write your thoughts about this book…";
     ta.value = st.bookNote || "";
     if (obsReady()) {
-      bnStatus(ru ? "Загрузка из Obsidian…" : "Loading from Obsidian…", "wait");
+      bnStatus(ru ? "Загрузка из Obsition…" : "Loading from Obsition…", "wait");
       try {
         const { text, sha } = await ghGetNote(b);
         st.bookNoteSha = sha;
         if (text != null && text.trim() !== (st.bookNote || "").trim()) {
-          // Obsidian has a newer/other version — show it (last edit wins on open)
+          // the copilot repo has a newer/other version — show it (last edit wins on open)
           if (!ta.value.trim() || text.trim()) { st.bookNote = text.trim(); ta.value = st.bookNote; }
         }
         saveState();
-        bnStatus(ru ? "Связано с Obsidian" : "Synced with Obsidian", "ok");
+        bnStatus(ru ? "Связано с Obsition" : "Synced with Obsition", "ok");
       } catch (e) {
         bnStatus((ru ? "Оффлайн — сохранено на устройстве" : "Offline — saved on device"), "");
       }
     } else {
-      bnStatus(ru ? "Подключи Obsidian, чтобы синхронизировать" : "Connect Obsidian to sync", "");
+      bnStatus(ru ? "Подключи Obsition, чтобы синхронизировать" : "Connect Obsition to sync", "");
     }
   }
   async function saveBookNote() {
@@ -892,11 +893,11 @@
     saveState();
     updateNoteCount();
     if (!obsReady()) { bnStatus(ru ? "Сохранено на устройстве" : "Saved on this device", "ok"); return; }
-    bnStatus(ru ? "Сохранение в Obsidian…" : "Saving to Obsidian…", "wait");
+    bnStatus(ru ? "Сохранение в Obsition…" : "Saving to Obsition…", "wait");
     try {
       st.bookNoteSha = await ghPutNote(b, st.bookNote, st.bookNoteSha);
       saveState();
-      bnStatus(ru ? "Сохранено в Obsidian ✓" : "Saved to Obsidian ✓", "ok");
+      bnStatus(ru ? "Сохранено в Obsition ✓" : "Saved to Obsition ✓", "ok");
     } catch (e) {
       bnStatus((ru ? "Не удалось: " : "Sync failed: ") + e.message, "err");
     }
@@ -905,8 +906,8 @@
     const c = obsCfg();
     const ru = currentBook && currentBook.lang === "ru";
     openModal(`
-      <h3>${ru ? "Подключить Obsidian" : "Connect Obsidian"}</h3>
-      <p class="obs-help">${ru ? "Заметки сохраняются как Markdown-файлы в твоём репозитории и открываются в Obsidian. Нужен GitHub-токен с правом contents (read &amp; write) только на этот репозиторий. Токен хранится только в этом браузере." : "Notes are saved as Markdown files in your repo and open in Obsidian. Needs a fine-grained GitHub token with Contents (read &amp; write) on just this repo. The token is stored only in this browser."}</p>
+      <h3>${ru ? "Подключить Obsition" : "Connect Obsition"}</h3>
+      <p class="obs-help">${ru ? "Заметки сохраняются как Markdown-файлы в проекте Obsition (репозиторий copilot) и синхронизируются в обе стороны. Нужен GitHub-токен с правом contents (read &amp; write) только на этот репозиторий. Токен хранится только в этом браузере." : "Notes are saved as Markdown files in your Obsition project (the copilot repo) and sync both ways. Needs a fine-grained GitHub token with Contents (read &amp; write) on just this repo. The token is stored only in this browser."}</p>
       <label class="obs-field"><span>Repository (owner/repo)</span><input id="obs-repo" type="text" value="${esc(c.repo)}" placeholder="erdanthecoder/copilot"></label>
       <label class="obs-field"><span>Folder</span><input id="obs-folder" type="text" value="${esc(c.folder)}" placeholder="ReadWorld"></label>
       <label class="obs-field"><span>GitHub token</span><input id="obs-token" type="password" value="${esc(c.token)}" placeholder="github_pat_…" autocomplete="off"></label>
@@ -929,7 +930,7 @@
       try {
         const br = await ghBranch();
         out.textContent = (ru ? "Подключено. Ветка: " : "Connected. Branch: ") + br; out.className = "obs-result ok";
-        $("btn-obsidian").textContent = "Obsidian ✓";
+        $("btn-obsidian").textContent = "Obsition ✓";
         setTimeout(() => { closeModal(); renderBookNote(); }, 900);
       } catch (e) {
         out.textContent = (ru ? "Ошибка: " : "Failed: ") + e.message + (ru ? " — проверь токен и доступ к репозиторию." : " — check the token and repo access."); out.className = "obs-result err";
