@@ -145,7 +145,8 @@
     // per-card length chip carries the Quick/Short/Long signal instead.
     return [
       { key: "continue", home: true, title: "Continue reading", match: (b) => { const s = state.books[b.id]; return s && s.lastRead && !s.finished; } },
-      { key: "en-fiction", title: "Stories — English", sub: "adventures & classics", match: (b) => b.lang === "en" && b.category === "fiction" },
+      { key: "en-full", title: "Full-length classics — English", sub: "complete, unabridged novels", match: (b) => b.lang === "en" && b.category === "fiction" && b.full },
+      { key: "en-fiction", title: "Stories — English", sub: "graded readers & short classics", match: (b) => b.lang === "en" && b.category === "fiction" && !b.full },
       { key: "ru-fiction", title: "Русская классика", sub: "4–9 класс", match: (b) => b.lang === "ru" && b.category === "fiction" },
       { key: "en-science", title: "Science — English", sub: "Year 9", match: (b) => b.lang === "en" && b.category === "science" },
       { key: "en-maths", title: "Maths — English", sub: "Year 9", match: (b) => b.lang === "en" && b.category === "maths" },
@@ -372,8 +373,10 @@
           const q = st && st.quizzes && st.quizzes[i];
           const hasQ = chapterHasQuiz(c);
           const state2 = q ? "Quiz " + q.score + "/" + q.total : (hasQ ? c.quiz.length + " questions" : (c.writing ? "writing" : "read"));
-          return `<button class="dchap" data-ch="${i}"><span>${i + 1}. ${esc(c.title)}</span>
-            <span class="dchap-state ${q ? "done" : ""}">${state2}</span></button>`;
+          const label = esc(c.title.replace(/^\s*\d+\s*[·.)]\s*/, ""));
+          const stateCls = q ? "done" : (hasQ ? "has-q" : (c.writing ? "has-w" : ""));
+          return `<button class="dchap" data-ch="${i}"><span class="dchap-num">${i + 1}</span><span class="dchap-title">${label}</span>
+            <span class="dchap-state ${stateCls}">${state2}</span></button>`;
         }).join("")}
       </div>`;
     card.querySelector("#btn-read").addEventListener("click", () => openReader(b.id));
