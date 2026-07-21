@@ -1033,7 +1033,7 @@
       } catch (e) { /* offline — skip */ }
     }
   }
-  async function saveBookNote() {
+  function saveBookNote() {
     const b = currentBook; if (!b) return;
     const ru = b.lang === "ru";
     const st = bookState(b.id);
