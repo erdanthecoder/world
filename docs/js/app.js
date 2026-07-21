@@ -121,6 +121,36 @@
     return out;
   }
 
+  /* ---- READ notes written in Obsition (no token needed for a public repo) ----
+     People write notes in the obsition (copilot) repo, in "ReadWorld Notes.md",
+     under a "## Book title" heading. ReadWorld fetches and shows them. */
+  async function fetchSharedNotes() {
+    const c = obsCfg();
+    const p = encodeURI(notesFilePath());
+    for (const br of ["main", "master"]) {
+      try {
+        const r = await fetch(`https://raw.githubusercontent.com/${c.repo}/${br}/${p}?_=${Date.now()}`, { cache: "no-store" });
+        if (r.ok) return await r.text();
+      } catch (e) { /* try next */ }
+    }
+    return null;
+  }
+  function parseSharedNotes(raw) {
+    const out = {};
+    if (!raw) return out;
+    raw.split(/\n(?=##\s)/).forEach((sec) => {
+      const m = /^##\s+(.+)$/m.exec(sec);
+      if (!m) return;
+      const head = m[1].split(" — ")[0].split(" · ")[0].trim().toLowerCase();
+      const book = LIBRARY.find((b) => b.title.trim().toLowerCase() === head);
+      if (!book) return;
+      let body = sec.replace(/^##\s+.+$/m, "").replace(/<!--[\s\S]*?-->/g, "");
+      body = body.split(/\n\*\*Highlights\*\*/i)[0].trim();
+      if (body) out[book.id] = body;
+    });
+    return out;
+  }
+
   function makeSyncCode() {
     const abc = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
     let s = "";
