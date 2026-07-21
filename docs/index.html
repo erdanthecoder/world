@@ -57,6 +57,10 @@
       <span>Already have a sync code from another device?</span>
       <button id="btn-restore" class="btn btn-ghost">Restore my progress</button>
     </div>
+    <div class="welcome-notes">
+      <button id="btn-welcome-notes" class="btn btn-ghost btn-sm">My notes</button>
+      <button id="btn-welcome-obs" class="btn btn-ghost btn-sm">Connect notes · Obsition</button>
+    </div>
   </div>
 </div>
 
@@ -178,7 +182,10 @@
   <div class="drawer-backdrop hidden" id="notes-backdrop"></div>
   <aside class="notes-drawer hidden" id="notes-drawer">
     <div class="toc-head">Notes &amp; highlights
-      <button class="obs-link" id="btn-obsidian" title="Connect Obsition">Obsition</button>
+      <span class="nd-actions">
+        <button class="obs-link obs-link-alt" id="btn-allnotes" title="All my notes">All notes</button>
+        <button class="obs-link" id="btn-obsidian" title="Connect Obsition">Obsition</button>
+      </span>
     </div>
     <div class="book-note" id="book-note">
       <label class="bn-label" id="bn-label">My note on this book</label>
