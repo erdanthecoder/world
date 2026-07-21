@@ -3,7 +3,7 @@ window.LIBRARY = (window.LIBRARY || []).concat([
 {
   id: "fic-treasure", lang: "en", category: "fiction", year: 7,
   title: "Treasure Island", author: "Robert Louis Stevenson",
-  cover: { c1: "#0f6e7a", c2: "#06333a" },
+  cover: { img: "img/covers/treasure.jpg", c1: "#0f6e7a", c2: "#06333a" },
   description: "The world's most famous pirate adventure, adapted as a graded reader. When young Jim Hawkins finds a treasure map in a dead sailor's chest, he sets sail for a distant island — not knowing that half the crew, led by the one-legged Long John Silver, are pirates plotting mutiny.",
   chapters: [
     {
@@ -60,7 +60,7 @@ window.LIBRARY = (window.LIBRARY || []).concat([
 {
   id: "fic-sherlock", lang: "en", category: "fiction", year: 9,
   title: "Sherlock Holmes: The Speckled Band", author: "Arthur Conan Doyle",
-  cover: { c1: "#2c3e50", c2: "#11181f" },
+  cover: { img: "img/covers/sherlock.jpg", c1: "#2c3e50", c2: "#11181f" },
   description: "One of the most famous Sherlock Holmes mysteries, adapted as a graded reader. A terrified young woman comes to Baker Street: her sister died whispering of a 'speckled band', and now she fears for her own life. Can Holmes solve the puzzle before it is too late?",
   chapters: [
     {
@@ -116,7 +116,7 @@ window.LIBRARY = (window.LIBRARY || []).concat([
 {
   id: "fic-alice", lang: "en", category: "fiction", year: 6,
   title: "Alice's Adventures in Wonderland", author: "Lewis Carroll",
-  cover: { c1: "#1e8f6e", c2: "#0c4a38" },
+  cover: { img: "img/covers/alice.jpg", c1: "#1e8f6e", c2: "#0c4a38" },
   description: "The beloved classic, adapted as a graded reader. Bored on a summer afternoon, Alice follows a waistcoat-wearing White Rabbit down a hole and tumbles into a nonsensical world of talking creatures, changing sizes and delightful absurdity.",
   chapters: [
     {
@@ -156,7 +156,7 @@ window.LIBRARY = (window.LIBRARY || []).concat([
 {
   id: "fic-christmas", lang: "en", category: "fiction", year: 8,
   title: "A Christmas Carol", author: "Charles Dickens",
-  cover: { c1: "#7a1f2b", c2: "#3a0d13" },
+  cover: { img: "img/covers/carol.jpg", c1: "#7a1f2b", c2: "#3a0d13" },
   description: "Dickens's timeless ghost story, adapted as a graded reader. The cold-hearted miser Ebenezer Scrooge despises Christmas — until, one bitter Christmas Eve, he is visited by the ghost of his dead partner and three spirits who show him the past, present and future he has made.",
   chapters: [
     {
@@ -212,7 +212,7 @@ window.LIBRARY = (window.LIBRARY || []).concat([
 {
   id: "fic-tomsawyer", lang: "en", category: "fiction", year: 6,
   title: "The Adventures of Tom Sawyer", author: "Mark Twain",
-  cover: { c1: "#c98a2b", c2: "#6e4410" },
+  cover: { img: "img/covers/tomsawyer.jpg", c1: "#c98a2b", c2: "#6e4410" },
   description: "Mark Twain's classic of boyhood along the Mississippi, adapted as a graded reader. Tom Sawyer is a clever, mischievous boy who would rather have adventures than do his chores — and who turns even a punishment into a stroke of genius.",
   chapters: [
     {
