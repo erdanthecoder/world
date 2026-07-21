@@ -83,12 +83,102 @@
     return state.obsidian;
   }
   function notesFilePath() { return "ReadWorld Notes.md"; }
+  function obsReady() { return !!(obsCfg().token); }
   let _sharedNotes = null, _sharedNotesAt = 0;
   async function loadSharedNotes(force) {
     if (!force && _sharedNotes && Date.now() - _sharedNotesAt < 60000) return _sharedNotes;
     try { _sharedNotes = parseSharedNotes(await fetchSharedNotes()); _sharedNotesAt = Date.now(); }
     catch (e) { if (!_sharedNotes) _sharedNotes = {}; }
     return _sharedNotes;
+  }
+
+  /* ---- WRITE notes from ReadWorld into the Obsition (copilot) project ----
+     Saving a note also updates "ReadWorld Notes.md" in the repo. Writing to a
+     repo needs a GitHub token (pasted once, kept only on this device). */
+  function b64encUtf8(str) { const bytes = new TextEncoder().encode(str); let bin = ""; bytes.forEach((b) => (bin += String.fromCharCode(b))); return btoa(bin); }
+  function b64decUtf8(b64) { const bin = atob((b64 || "").replace(/\n/g, "")); const a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new TextDecoder().decode(a); }
+  function ghHeaders() { return { Authorization: "Bearer " + obsCfg().token, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" }; }
+  async function ghBranch() {
+    const c = obsCfg();
+    if (c.branch) return c.branch;
+    const res = await fetch("https://api.github.com/repos/" + c.repo, { headers: ghHeaders(), cache: "no-store" });
+    if (!res.ok) throw new Error("repo " + res.status);
+    c.branch = (await res.json()).default_branch || "main"; saveState();
+    return c.branch;
+  }
+  function buildAllNotesMd() {
+    const lines = ["# ReadWorld Notes", "", "_" + (state.profile ? state.profile.name + " · " : "") + "updated " + new Date().toLocaleDateString() + "_", ""];
+    let any = false;
+    LIBRARY.forEach((b) => {
+      const st = state.books[b.id]; if (!st) return;
+      const note = (st.bookNote || "").trim();
+      const hls = (st.highlights || []).slice().sort((a, c) => a.ch - c.ch || a.pi - c.pi || a.start - c.start);
+      if (!note && !hls.length) return;
+      any = true;
+      lines.push(`## ${b.title} — ${b.author}`, "");
+      if (note) lines.push(note, "");
+      if (hls.length) { lines.push("**Highlights**", ""); hls.forEach((h) => lines.push(`- “${(h.text || "").replace(/\s+/g, " ").trim()}”` + (h.note ? ` — ${h.note.replace(/\s+/g, " ").trim()}` : ""))); lines.push(""); }
+    });
+    if (!any) lines.push("_No notes yet._", "");
+    return lines.join("\n");
+  }
+  function applyPulledNotes(raw) {
+    const parsed = parseSharedNotes(raw);
+    Object.keys(parsed).forEach((id) => { const st = bookState(id); if ((parsed[id] || "").trim() && parsed[id].trim() !== (st.bookNote || "").trim()) st.bookNote = parsed[id].trim(); });
+    saveState();
+  }
+  async function ghGetAllNotes() {
+    const c = obsCfg();
+    const url = "https://api.github.com/repos/" + c.repo + "/contents/" + encodeURI(notesFilePath()) + "?ref=" + encodeURIComponent(await ghBranch()) + "&_=" + Date.now();
+    const res = await fetch(url, { headers: ghHeaders(), cache: "no-store" });
+    if (res.status === 404) return { text: null, sha: null };
+    if (!res.ok) throw new Error("get " + res.status);
+    const data = await res.json();
+    return { text: b64decUtf8(data.content), sha: data.sha };
+  }
+  async function ghPutAllNotes() {
+    const c = obsCfg();
+    let sha = c.notesSha;
+    try { const cur = await ghGetAllNotes(); sha = cur.sha; if (cur.text) applyPulledNotes(cur.text); } catch (e) { /* first write */ }
+    const url = "https://api.github.com/repos/" + c.repo + "/contents/" + encodeURI(notesFilePath());
+    const body = { message: "Update ReadWorld Notes", content: b64encUtf8(buildAllNotesMd()), branch: await ghBranch() };
+    if (sha) body.sha = sha;
+    const res = await fetch(url, { method: "PUT", headers: ghHeaders(), body: JSON.stringify(body) });
+    if (!res.ok) { const t = await res.text().catch(() => ""); throw new Error("put " + res.status + " " + t.slice(0, 140)); }
+    c.notesSha = (await res.json()).content.sha; saveState();
+  }
+  function openObsition() {
+    const c = obsCfg();
+    const ru = currentBook && currentBook.lang === "ru";
+    const connected = obsReady();
+    openModal(`
+      <h3>Obsition</h3>
+      <p class="obs-help">${ru ? "Чтобы заметки из ReadWorld сохранялись и в проект copilot, нужен один GitHub-токен (вставляется один раз, хранится только на этом устройстве). Иначе заметки просто сохраняются в приложении." : "To also save ReadWorld notes into the copilot project, paste one GitHub token (once; kept only on this device). Without it, notes just save in the app."}</p>
+      <label class="obs-field"><span>${ru ? "GitHub-токен" : "GitHub token"}</span><input id="obs-token" type="password" value="${esc(c.token || "")}" placeholder="github_pat_…" autocomplete="off"></label>
+      <a class="obs-tokenlink" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">${ru ? "Получить токен на GitHub →" : "Get a token on GitHub →"}</a>
+      <div class="modal-actions">
+        ${connected ? `<button class="btn btn-ghost" id="obs-disc" style="margin-right:auto">${ru ? "Отключить" : "Disconnect"}</button>` : ""}
+        <button class="btn btn-ghost" id="obs-cancel">${ru ? "Отмена" : "Cancel"}</button>
+        <button class="btn btn-primary" id="obs-connect">${ru ? "Подключить" : "Connect"}</button>
+      </div>
+      <div class="obs-result" id="obs-result"></div>`);
+    const card = $("modal-card");
+    card.querySelector("#obs-cancel").addEventListener("click", closeModal);
+    const disc = card.querySelector("#obs-disc");
+    if (disc) disc.addEventListener("click", () => { const cc = obsCfg(); cc.token = ""; cc.branch = ""; saveState(); closeModal(); renderBookNote(); });
+    card.querySelector("#obs-connect").addEventListener("click", async () => {
+      const cc = obsCfg(); cc.token = card.querySelector("#obs-token").value.trim(); cc.branch = ""; saveState();
+      const out = card.querySelector("#obs-result");
+      if (!cc.token) { out.textContent = ru ? "Вставь токен." : "Paste a token."; out.className = "obs-result err"; return; }
+      out.textContent = ru ? "Подключение…" : "Connecting…"; out.className = "obs-result wait";
+      try {
+        await ghPutAllNotes();   // verify + create/update the file with current notes
+        out.textContent = ru ? "Подключено ✓ Заметки сохраняются в copilot." : "Connected ✓ Notes now save into copilot."; out.className = "obs-result ok";
+        setTimeout(() => { closeModal(); renderBookNote(); }, 1000);
+      } catch (e) {
+        out.textContent = (ru ? "Не удалось: " : "Failed: ") + e.message + (ru ? " — проверь токен." : " — check the token."); out.className = "obs-result err";
+      }
+    });
   }
 
   /* ---- READ notes written in Obsition (no token needed for a public repo) ----
@@ -744,6 +834,7 @@
     $("notes-backdrop").addEventListener("click", closeNotes);
     $("bn-save").addEventListener("click", saveBookNote);
     $("btn-allnotes").addEventListener("click", openAllNotes);
+    $("btn-obsition").addEventListener("click", openObsition);
     // settings popover
     $("btn-settings").addEventListener("click", () => $("settings-pop").classList.toggle("hidden"));
     document.addEventListener("click", (e) => {
@@ -916,21 +1007,31 @@
     $("bn-label").textContent = ru ? "Моя заметка о книге" : "My note on this book";
     $("notes-sub").textContent = ru ? "Выделения" : "Highlights";
     $("bn-save").textContent = ru ? "Сохранить" : "Save";
+    $("btn-obsition").textContent = obsReady() ? "Obsition ✓" : "Obsition";
     const ta = $("bn-text");
     ta.placeholder = ru ? "Запиши свои мысли об этой книге…" : "Write your thoughts about this book…";
     ta.value = st.bookNote || "";
-    bnStatus("");
-    // Show any note written for this book in the Obsition project (read-only).
     const shBox = $("bn-shared");
     shBox.classList.add("hidden");
-    try {
-      const shared = await loadSharedNotes();
-      const sh = shared[b.id];
-      if (sh) {
-        shBox.innerHTML = `<div class="bn-shared-head"><span class="an-tag">Obsition</span>${ru ? "заметка из проекта" : "note from the project"}</div><p>${esc(sh)}</p>`;
-        shBox.classList.remove("hidden");
-      }
-    } catch (e) { /* offline — just skip */ }
+    if (obsReady()) {
+      // connected: pull the shared file so edits made in copilot show here too
+      bnStatus(ru ? "Связано с Obsition ✓" : "Connected to Obsition ✓", "ok");
+      try {
+        const { text } = await ghGetAllNotes();
+        if (text) { applyPulledNotes(text); ta.value = bookState(b.id).bookNote || ""; }
+      } catch (e) { bnStatus(ru ? "Оффлайн — сохранено на устройстве" : "Offline — saved on device", ""); }
+    } else {
+      bnStatus("");
+      // not connected: still SHOW notes written in copilot (read-only, no token)
+      try {
+        const shared = await loadSharedNotes();
+        const sh = shared[b.id];
+        if (sh && sh.trim() !== (st.bookNote || "").trim()) {
+          shBox.innerHTML = `<div class="bn-shared-head"><span class="an-tag">Obsition</span>${ru ? "заметка из проекта" : "note from the project"}</div><p>${esc(sh)}</p>`;
+          shBox.classList.remove("hidden");
+        }
+      } catch (e) { /* offline — skip */ }
+    }
   }
   function saveBookNote() {
     const b = currentBook; if (!b) return;
@@ -939,7 +1040,17 @@
     st.bookNote = $("bn-text").value.trim();
     saveState();
     updateNoteCount();
-    bnStatus(ru ? "Сохранено" : "Saved", "ok");
+    if (!obsReady()) {
+      bnStatus(ru ? "Сохранено. Нажми «Obsition», чтобы сохранять и в copilot." : "Saved. Tap “Obsition” to also save into copilot.", "ok");
+      return;
+    }
+    bnStatus(ru ? "Сохранение в Obsition…" : "Saving into Obsition…", "wait");
+    try {
+      await ghPutAllNotes();
+      bnStatus(ru ? "Сохранено в Obsition ✓" : "Saved into Obsition ✓", "ok");
+    } catch (e) {
+      bnStatus((ru ? "Не удалось: " : "Couldn't save to Obsition: ") + e.message, "err");
+    }
   }
   function renderNotesList() {
     const b = currentBook;
