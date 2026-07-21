@@ -3,7 +3,7 @@ window.LIBRARY = (window.LIBRARY || []).concat([
 {
   id: "ru-pushkin-rybak", lang: "ru", category: "fiction", year: 4,
   title: "Сказка о рыбаке и рыбке", author: "А. С. Пушкин",
-  cover: { c1: "#2a6fb0", c2: "#123255" },
+  cover: { img: "img/covers/rybak.jpg", c1: "#2a6fb0", c2: "#123255" },
   description: "Знаменитая сказка Александра Пушкина в прозаическом пересказе. Старик поймал волшебную золотую рыбку и отпустил её. Но его жадная старуха потребовала награду за наградой — и узнала, чем заканчивается жадность.",
   chapters: [
     {
@@ -43,7 +43,7 @@ window.LIBRARY = (window.LIBRARY || []).concat([
 {
   id: "ru-krylov", lang: "ru", category: "fiction", year: 4,
   title: "Басни", author: "И. А. Крылов",
-  cover: { c1: "#b5791f", c2: "#5e3c0c" },
+  cover: { img: "img/covers/krylov.jpg", c1: "#b5791f", c2: "#5e3c0c" },
   description: "Знаменитые басни Ивана Крылова — короткие истории с животными, за которыми скрывается мудрость о людях. «Ворона и Лисица», «Стрекоза и Муравей», «Лебедь, Щука и Рак» — каждая заканчивается уроком, который стоит запомнить.",
   chapters: [
     {
@@ -83,7 +83,7 @@ window.LIBRARY = (window.LIBRARY || []).concat([
 {
   id: "ru-chekhov-kashtanka", lang: "ru", category: "fiction", year: 6,
   title: "Каштанка", author: "А. П. Чехов",
-  cover: { c1: "#a0522d", c2: "#4a2510" },
+  cover: { img: "img/covers/kashtanka.jpg", c1: "#a0522d", c2: "#4a2510" },
   description: "Трогательная повесть Антона Чехова о собаке. Молодая рыжая собачонка Каштанка потерялась на улице и попала к новому хозяину — весёлому клоуну. Но забудет ли она свою прежнюю семью?",
   chapters: [
     {
@@ -124,7 +124,7 @@ window.LIBRARY = (window.LIBRARY || []).concat([
 {
   id: "ru-tolstoy-detstvo", lang: "ru", category: "fiction", year: 7,
   title: "Кавказский пленник", author: "Л. Н. Толстой",
-  cover: { c1: "#6b7a3a", c2: "#33401a" },
+  cover: { img: "img/covers/plennik.jpg", c1: "#6b7a3a", c2: "#33401a" },
   description: "Быль Льва Толстого о храбрости и дружбе. Русский офицер Жилин попадает в плен к горцам на Кавказе. Не теряя духа, он ищет путь к спасению — и находит неожиданного друга среди своих врагов.",
   chapters: [
     {
@@ -164,7 +164,7 @@ window.LIBRARY = (window.LIBRARY || []).concat([
 {
   id: "ru-gogol-shinel", lang: "ru", category: "fiction", year: 9,
   title: "Шинель", author: "Н. В. Гоголь",
-  cover: { c1: "#3a4a5a", c2: "#1a222c" },
+  cover: { img: "img/covers/shinel.jpg", c1: "#3a4a5a", c2: "#1a222c" },
   description: "Знаменитая повесть Николая Гоголя — одна из вершин русской литературы. Бедный чиновник Акакий Акакиевич живёт незаметной жизнью, пока мечта о новой шинели не наполняет её смыслом. Грустная и глубокая история о «маленьком человеке».",
   chapters: [
     {
@@ -204,7 +204,7 @@ window.LIBRARY = (window.LIBRARY || []).concat([
 {
   id: "ru-ershov-konek", lang: "ru", category: "fiction", year: 5,
   title: "Конёк-Горбунок", author: "П. П. Ершов",
-  cover: { c1: "#7a3fb0", c2: "#3a1a5e" },
+  cover: { img: "img/covers/konek.jpg", c1: "#7a3fb0", c2: "#3a1a5e" },
   description: "Волшебная сказка Петра Ершова в пересказе. Младший сын Иван, которого все считали дурачком, ловит чудесную кобылицу и получает верного друга — маленького горбатого конька, который помогает ему пройти через все испытания.",
   chapters: [
     {
@@ -244,7 +244,7 @@ window.LIBRARY = (window.LIBRARY || []).concat([
 {
   id: "ru-garshin-frog", lang: "ru", category: "fiction", year: 5,
   title: "Лягушка-путешественница", author: "В. М. Гаршин",
-  cover: { c1: "#3f9e5e", c2: "#1c4d2c" },
+  cover: { img: "img/covers/frog.jpg", c1: "#3f9e5e", c2: "#1c4d2c" },
   description: "Добрая и остроумная сказка Всеволода Гаршина. Обыкновенная лягушка придумала удивительный способ путешествовать вместе с утками на юг. Но чуть не погубила её собственная гордость.",
   chapters: [
     {
