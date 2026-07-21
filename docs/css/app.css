@@ -180,16 +180,50 @@ input { font-family: inherit; }
 .cover-title {
   font-family: Georgia, "Times New Roman", "Noto Serif", serif; font-weight: 700;
   font-size: 15px; line-height: 1.22; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.3);
-  letter-spacing: .1px;
+  letter-spacing: .1px; overflow-wrap: anywhere; hyphens: auto;
 }
 .cover-author { font-size: 10px; letter-spacing: .3px; color: rgba(255,255,255,.85); margin-top: 6px; text-transform: uppercase; }
 .cover-imprint {
   font-size: 8px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
   color: rgba(255,255,255,.55); text-align: left;
 }
+
+/* ---- cover style: BOLD (giant title, big watermark) ---- */
+.cover-body.bold { justify-content: space-between; }
+.cover-watermark.big { top: -34px; right: -12px; bottom: auto; font-size: 190px; color: rgba(255,255,255,.1); }
+.cover-boldwrap { margin-top: auto; }
+.cs-bold .cover-title { font-size: 19px; line-height: 1.1; letter-spacing: -.3px; }
+.cs-bold .cover-author { margin-top: 8px; }
+
+/* ---- cover style: BAND (Penguin-like centre label) ---- */
+.cs-band .cover-band { position: absolute; inset: 0; display: flex; flex-direction: column; }
+.cover-band-top { flex: 1; display: flex; align-items: flex-start; padding: 14px 16px; }
+.cover-band-bot { flex: 1; display: flex; align-items: flex-end; padding: 14px 16px; }
+.cover-band-mid {
+  background: #f3ecdd; color: #2a2620; padding: 14px 16px;
+  box-shadow: 0 8px 18px rgba(0,0,0,.28), 0 -1px 0 rgba(0,0,0,.15);
+}
+.cover-band-mid .cover-title { color: #2a2620; text-shadow: none; }
+.cover-band-mid .cover-author { color: #7a6f5c; }
+
+/* ---- cover style: FRAMED (inner hairline frame, centred) ---- */
+.cover-frame { position: absolute; inset: 11px; border: 1.5px solid rgba(255,255,255,.5); border-radius: 4px; pointer-events: none; z-index: 2; }
+.cover-body.framed { text-align: center; align-items: center; justify-content: center; padding: 26px 16px; }
+.cover-body.framed .cover-kicker { position: absolute; top: 22px; left: 0; right: 0; }
+.cover-body.framed .cover-imprint { position: absolute; bottom: 22px; left: 0; right: 0; text-align: center; }
+.cover-body.framed .cover-heading { align-items: center; margin: 0; }
+.cover-orn { width: 6px; height: 6px; border: 1.4px solid rgba(255,255,255,.75); transform: rotate(45deg); margin: 9px auto; display: block; }
+
 .book-meta-line { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
 .book-name { font-size: 13px; font-weight: 600; color: #e8e8f2; line-height: 1.3; }
-.book-progress-txt { font-size: 11.5px; color: #9a9ab5; }
+.book-progress-txt { font-size: 11.5px; color: #9a9ab5; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.len-chip { font-size: 10px; font-weight: 700; letter-spacing: .3px; padding: 2px 7px; border-radius: 999px; text-transform: uppercase; }
+.len-quick { background: rgba(70,150,255,.16); color: #7db0ff; }
+.len-short { background: rgba(60,190,120,.16); color: #5fd694; }
+.len-long { background: rgba(255,120,60,.18); color: #ff9d5a; }
+.tag-len { background: rgba(255,120,60,.16) !important; color: #ff9d5a !important; }
+.shelf-sub { font-size: 12px; font-weight: 500; color: #7f7f9a; font-style: italic; }
+.dch-count { font-size: 12px; font-weight: 600; color: #8686a2; margin-left: 4px; }
 .book-bar { height: 4px; border-radius: 4px; background: rgba(255,255,255,.12); overflow: hidden; }
 .book-bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg,#ff9d2f,#ff6126); }
 .lib-empty { text-align: center; color: #8686a2; padding: 60px 20px; font-size: 15px; }
