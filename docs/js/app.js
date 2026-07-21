@@ -141,13 +141,15 @@
      LIBRARY
      ============================================================ */
   function shelfDefs() {
+    // Each book appears in exactly one subject shelf (no duplication); the
+    // per-card length chip carries the Quick/Short/Long signal instead.
     return [
-      { key: "continue", title: "Continue reading", match: (b) => { const s = state.books[b.id]; return s && s.lastRead && !s.finished; } },
-      { key: "en-science", title: "Year 9 Science — English", match: (b) => b.lang === "en" && b.category === "science" },
-      { key: "en-maths", title: "Year 9 Maths — English", match: (b) => b.lang === "en" && b.category === "maths" },
-      { key: "en-fiction", title: "Classic Stories — English", match: (b) => b.lang === "en" && b.category === "fiction" },
-      { key: "ru-fiction", title: "Русская классика — 4–9 класс", match: (b) => b.lang === "ru" && b.category === "fiction" },
-      { key: "ru-edu", title: "Наука и математика — 9 класс", match: (b) => b.lang === "ru" && b.category !== "fiction" },
+      { key: "continue", home: true, title: "Continue reading", match: (b) => { const s = state.books[b.id]; return s && s.lastRead && !s.finished; } },
+      { key: "en-fiction", title: "Stories — English", sub: "adventures & classics", match: (b) => b.lang === "en" && b.category === "fiction" },
+      { key: "ru-fiction", title: "Русская классика", sub: "4–9 класс", match: (b) => b.lang === "ru" && b.category === "fiction" },
+      { key: "en-science", title: "Science — English", sub: "Year 9", match: (b) => b.lang === "en" && b.category === "science" },
+      { key: "en-maths", title: "Maths — English", sub: "Year 9", match: (b) => b.lang === "en" && b.category === "maths" },
+      { key: "ru-edu", title: "Наука и математика", sub: "9 класс", match: (b) => b.lang === "ru" && b.category !== "fiction" },
     ];
   }
   function passesFilters(b) {
@@ -162,27 +164,67 @@
     }
     return true;
   }
+  const COVER_STYLES = ["classic", "bold", "band", "framed"];
+  function coverStyle(b) {
+    if (b.cover.style) return b.cover.style;
+    let h = 0; for (const c of b.id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    return COVER_STYLES[h % COVER_STYLES.length];
+  }
   function coverHTML(b, extraStyle) {
-    const kicker = (b.lang === "ru" ? CAT_LABEL_RU[b.category] : CAT_LABEL[b.category]) +
-      " · " + (b.lang === "ru" ? b.year + " кл." : "Year " + b.year);
+    const ru = b.lang === "ru";
+    const K = esc((ru ? CAT_LABEL_RU[b.category] : CAT_LABEL[b.category]) + " · " + (ru ? b.year + " кл." : "Year " + b.year));
+    const T = esc(b.title), A = esc(b.author);
     const initial = esc((b.title.match(/[A-Za-zА-Яа-яЁё]/) || ["R"])[0].toUpperCase());
-    return `<div class="book-cover cat-${b.category}" style="--c1:${b.cover.c1};--c2:${b.cover.c2};${extraStyle || ""}">
+    const style = coverStyle(b);
+    let inner;
+    if (style === "bold") {
+      inner = `<div class="cover-watermark big" aria-hidden="true">${initial}</div>
+        <div class="cover-body bold">
+          <div class="cover-kicker">${K}</div>
+          <div class="cover-boldwrap"><div class="cover-title">${T}</div><div class="cover-author">${A}</div></div>
+          <div class="cover-imprint">ReadWorld</div>
+        </div>`;
+    } else if (style === "band") {
+      inner = `<div class="cover-band">
+          <div class="cover-band-top"><span class="cover-kicker">${K}</span></div>
+          <div class="cover-band-mid"><div class="cover-title">${T}</div><div class="cover-author">${A}</div></div>
+          <div class="cover-band-bot"><span class="cover-imprint">ReadWorld</span></div>
+        </div>`;
+    } else if (style === "framed") {
+      inner = `<div class="cover-frame" aria-hidden="true"></div>
+        <div class="cover-body framed">
+          <div class="cover-kicker">${K}</div>
+          <div class="cover-heading">
+            <span class="cover-orn"></span>
+            <span class="cover-title">${T}</span>
+            <span class="cover-author">${A}</span>
+            <span class="cover-orn"></span>
+          </div>
+          <div class="cover-imprint">ReadWorld</div>
+        </div>`;
+    } else {
+      inner = `<div class="cover-watermark" aria-hidden="true">${initial}</div>
+        <div class="cover-body">
+          <div class="cover-kicker">${K}</div>
+          <div class="cover-heading">
+            <span class="cover-rule"></span>
+            <span class="cover-title">${T}</span>
+            <span class="cover-author">${A}</span>
+            <span class="cover-rule"></span>
+          </div>
+          <div class="cover-imprint">ReadWorld</div>
+        </div>`;
+    }
+    return `<div class="book-cover cs-${style} cat-${b.category}" style="--c1:${b.cover.c1};--c2:${b.cover.c2};${extraStyle || ""}">
       <div class="cover-texture" aria-hidden="true"></div>
       <div class="cover-sheen" aria-hidden="true"></div>
       <div class="cover-spine"></div>
-      <div class="cover-watermark" aria-hidden="true">${initial}</div>
-      <div class="cover-body">
-        <div class="cover-kicker">${esc(kicker)}</div>
-        <div class="cover-heading">
-          <span class="cover-rule"></span>
-          <span class="cover-title">${esc(b.title)}</span>
-          <span class="cover-author">${esc(b.author)}</span>
-          <span class="cover-rule"></span>
-        </div>
-        <div class="cover-imprint">ReadWorld</div>
-      </div>
+      ${inner}
     </div>`;
   }
+  function bookPages(b) { return Math.max(2, Math.round(bookWords(b) / 160)); }
+  function bookMinutes(b) { return Math.max(1, Math.round(bookWords(b) / 200)); }
+  function lengthTag(b) { const p = bookPages(b); return p < 10 ? "Quick read" : p < 22 ? "Short read" : "Long read"; }
   function levelFromXp(xp) { return Math.floor((xp || 0) / 200) + 1; }
   function todayKey() { const d = new Date(); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); }
   function touchStreak() {
@@ -251,15 +293,16 @@
 
     let shown = 0, shelfIdx = 0;
     shelfDefs().forEach((def) => {
-      // On the default view, the hero already covers "continue"; keep the shelf too but skip its top book if it's the hero.
+      if (def.home && !defaultView) return;   // length/continue rows only on the home view
       const books = LIBRARY.filter((b) => def.match(b) && passesFilters(b));
       if (!books.length) return;
       if (def.key === "continue") books.sort((a, b2) => (state.books[b2.id].lastRead || 0) - (state.books[a.id].lastRead || 0));
+      else if (def.key === "long") books.sort((a, b2) => bookPages(b2) - bookPages(a));
       shown += books.length;
       const shelf = document.createElement("section");
       shelf.className = "shelf";
       shelf.style.animationDelay = (shelfIdx++ * 60) + "ms";
-      shelf.innerHTML = `<div class="shelf-title"><span class="shelf-accent"></span>${def.title} <span class="shelf-count">${books.length} book${books.length > 1 ? "s" : ""}</span></div><div class="shelf-grid"></div>`;
+      shelf.innerHTML = `<div class="shelf-title"><span class="shelf-accent"></span>${def.title}${def.sub ? ` <span class="shelf-sub">${def.sub}</span>` : ""} <span class="shelf-count">${books.length} book${books.length > 1 ? "s" : ""}</span></div><div class="shelf-grid"></div>`;
       const grid = shelf.querySelector(".shelf-grid");
       books.forEach((b) => {
         const pct = bookProgressPct(b);
@@ -267,7 +310,7 @@
         card.className = "book-card";
         card.innerHTML = `${coverHTML(b)}
           <div class="book-meta-line"><span class="book-name">${esc(b.title)}</span></div>
-          ${pct > 0 ? `<div class="book-bar"><div class="book-bar-fill" style="width:${pct}%"></div></div><span class="book-progress-txt">${pct >= 100 ? "Finished" : pct + "% read"}</span>` : `<span class="book-progress-txt">${b.chapters.length} chapters · ~${Math.round(bookWords(b) / 200)} min</span>`}`;
+          ${pct > 0 ? `<div class="book-bar"><div class="book-bar-fill" style="width:${pct}%"></div></div><span class="book-progress-txt">${pct >= 100 ? "Finished" : pct + "% read"}</span>` : `<span class="book-progress-txt"><span class="len-chip len-${lengthTag(b).split(" ")[0].toLowerCase()}">${lengthTag(b)}</span>${bookPages(b)} pp · ${b.chapters.length} ch</span>`}`;
         card.addEventListener("click", () => openDetail(b.id));
         grid.appendChild(card);
       });
@@ -314,7 +357,9 @@
           <span class="tag">${b.lang === "ru" ? CAT_LABEL_RU[b.category] : CAT_LABEL[b.category]}</span>
           <span class="tag">${b.lang === "ru" ? b.year + " класс" : "Year " + b.year}</span>
           <span class="tag">${b.chapters.length} chapters</span>
-          <span class="tag">~${Math.round(bookWords(b) / 200)} min</span>
+          <span class="tag">~${bookPages(b)} pages</span>
+          <span class="tag">~${bookMinutes(b)} min</span>
+          <span class="tag tag-len">${lengthTag(b)}</span>
         </div>
         <p class="detail-desc">${esc(b.description)}</p>
         <div class="detail-actions">
@@ -322,11 +367,13 @@
           ${started ? '<button class="btn btn-ghost" id="btn-restart">Start over</button>' : ""}
         </div>
       </div>
-      <div class="detail-chapters"><h3>Chapters · Главы</h3>
+      <div class="detail-chapters"><h3>Chapters · Главы <span class="dch-count">${b.chapters.length}</span></h3>
         ${b.chapters.map((c, i) => {
           const q = st && st.quizzes && st.quizzes[i];
+          const hasQ = chapterHasQuiz(c);
+          const state2 = q ? "Quiz " + q.score + "/" + q.total : (hasQ ? c.quiz.length + " questions" : (c.writing ? "writing" : "read"));
           return `<button class="dchap" data-ch="${i}"><span>${i + 1}. ${esc(c.title)}</span>
-            <span class="dchap-state ${q ? "done" : ""}">${q ? "Quiz " + q.score + "/" + q.total : c.quiz.length + " questions"}</span></button>`;
+            <span class="dchap-state ${q ? "done" : ""}">${state2}</span></button>`;
         }).join("")}
       </div>`;
     card.querySelector("#btn-read").addEventListener("click", () => openReader(b.id));
@@ -357,18 +404,27 @@
     saveState();
   }
 
+  function chapterHasQuiz(ch) { return !!(ch.quiz && ch.quiz.length); }
   function renderChapter() {
     const b = currentBook;
     const ch = b.chapters[currentChapter];
     const st = bookState(b.id);
+    const hasQuiz = chapterHasQuiz(ch);
     const quizDone = st.quizzes[currentChapter];
-    const pendingWriting = quizDone && ch.writing && !st.writings[currentChapter];
+    const needsQuiz = hasQuiz && !quizDone;
+    const pendingWriting = !needsQuiz && ch.writing && !st.writings[currentChapter];
     const isLast = currentChapter === b.chapters.length - 1;
     const ru = b.lang === "ru";
     let btnLabel;
-    if (!quizDone) btnLabel = ru ? "Ответить на вопросы" : "Answer the questions";
+    if (needsQuiz) btnLabel = ru ? "Ответить на вопросы" : "Answer the questions";
     else if (pendingWriting) btnLabel = ru ? "Письменное задание" : "Writing task";
     else btnLabel = isLast ? (ru ? "Закончить книгу" : "Finish book") : (ru ? "Следующая глава" : "Next chapter");
+    // Note under the button varies with the chapter (not always "answer the questions").
+    let note;
+    if (quizDone) note = `${ru ? "Результат" : "Quiz"}: ${quizDone.score}/${quizDone.total}${ch.writing ? " &nbsp;·&nbsp; " + (st.writings[currentChapter] ? (ru ? "письмо ✓" : "writing done") : (ru ? "письмо ждёт" : "writing to do")) : ""} &nbsp;·&nbsp; <a href="#" id="retake-quiz">${ru ? "пройти заново" : "retake"}</a>`;
+    else if (needsQuiz) note = ru ? "Ответь на вопросы, чтобы продолжить" : "Answer the questions to continue";
+    else if (pendingWriting) note = ru ? "Небольшое письменное задание" : "A short writing task";
+    else note = isLast ? (ru ? "Конец книги" : "The end") : (ru ? "Конец главы" : "End of chapter");
     const content = $("reader-content");
     content.innerHTML =
       `<div class="chap-book">${esc(b.title)}</div>` +
@@ -376,11 +432,11 @@
       ch.paragraphs.map((p, pi) => `<p data-pi="${pi}">${renderParagraph(p, pi, st)}</p>`).join("") +
       `<div class="chap-end"><div class="fleuron" aria-hidden="true"><span></span><span class="dot"></span><span></span></div>
         <button class="btn-chap-quiz" id="btn-chap-quiz">${btnLabel}</button>
-        ${quizDone ? `<div class="quiz-done-note">${ru ? "Результат" : "Quiz"}: ${quizDone.score}/${quizDone.total}${ch.writing ? " &nbsp;·&nbsp; " + (st.writings[currentChapter] ? (ru ? "письмо ✓" : "writing done") : (ru ? "письмо ждёт" : "writing to do")) : ""} &nbsp;·&nbsp; <a href="#" id="retake-quiz">${ru ? "пройти заново" : "retake"}</a></div>` : `<div class="quiz-done-note">${ru ? "Ответь на вопросы, чтобы продолжить" : "Answer the questions to continue"}</div>`}
+        <div class="quiz-done-note">${note}</div>
       </div>`;
     $("reader-book-title").textContent = b.title;
     content.querySelector("#btn-chap-quiz").addEventListener("click", () => {
-      if (!st.quizzes[currentChapter]) startQuiz();
+      if (needsQuiz) startQuiz();
       else proceedAfterQuiz();
     });
     const retake = content.querySelector("#retake-quiz");
@@ -456,10 +512,11 @@
 
   function nextPage() {
     if (currentPage < pageCount - 1) { goToPage(currentPage + 1); return; }
-    // end of chapter — quiz gate
+    // end of chapter — only gate when this chapter has an unfinished quiz
+    const ch = currentBook.chapters[currentChapter];
     const st = bookState(currentBook.id);
-    if (st.quizzes[currentChapter]) proceedAfterQuiz();
-    else startQuiz();
+    if (chapterHasQuiz(ch) && !st.quizzes[currentChapter]) startQuiz();
+    else proceedAfterQuiz();
   }
   function prevPage() {
     if (currentPage > 0) { goToPage(currentPage - 1); return; }
