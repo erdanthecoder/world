@@ -166,7 +166,9 @@
     const kicker = (b.lang === "ru" ? CAT_LABEL_RU[b.category] : CAT_LABEL[b.category]) +
       " · " + (b.lang === "ru" ? b.year + " кл." : "Year " + b.year);
     const initial = esc((b.title.match(/[A-Za-zА-Яа-яЁё]/) || ["R"])[0].toUpperCase());
-    return `<div class="book-cover" style="--c1:${b.cover.c1};--c2:${b.cover.c2};${extraStyle || ""}">
+    return `<div class="book-cover cat-${b.category}" style="--c1:${b.cover.c1};--c2:${b.cover.c2};${extraStyle || ""}">
+      <div class="cover-texture" aria-hidden="true"></div>
+      <div class="cover-sheen" aria-hidden="true"></div>
       <div class="cover-spine"></div>
       <div class="cover-watermark" aria-hidden="true">${initial}</div>
       <div class="cover-body">
@@ -181,19 +183,83 @@
       </div>
     </div>`;
   }
+  function levelFromXp(xp) { return Math.floor((xp || 0) / 200) + 1; }
+  function todayKey() { const d = new Date(); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); }
+  function touchStreak() {
+    const s = state.stats;
+    const t = todayKey();
+    if (s.lastDay === t) return;
+    const y = new Date(); y.setDate(y.getDate() - 1);
+    const yKey = y.getFullYear() + "-" + (y.getMonth() + 1) + "-" + y.getDate();
+    s.streak = s.lastDay === yKey ? (s.streak || 0) + 1 : 1;
+    s.lastDay = t;
+    saveState();
+  }
+  function statsStripHTML() {
+    const s = state.stats;
+    const finished = Object.values(state.books).filter((b) => b.finished).length;
+    const acc = s.answered ? Math.round((s.correct / s.answered) * 100) : 0;
+    const lvl = levelFromXp(s.xp);
+    const ru = false;
+    const pill = (icon, val, label, cls) => `<div class="stat-pill ${cls}"><span class="stat-ic">${icon}</span><span class="stat-txt"><span class="stat-val">${val}</span><span class="stat-lbl">${label}</span></span></div>`;
+    const flame = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2s5 3.6 5 8.5a5 5 0 0 1-10 0c0-1.8.8-3 1.7-3.9C8.7 8 9 9.4 10 9.9 10 7 10.4 4.6 12 2Z"/></svg>';
+    const bolt = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>';
+    const bookI = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h11a1 1 0 0 1 1 1v15H6a1 1 0 0 1-1-1V4Z"/><path d="M17 4h1a1 1 0 0 1 1 1v14"/><path d="M9 8h5"/></svg>';
+    const target = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.4"/></svg>';
+    return `<div class="stats-row">
+      ${pill(flame, (s.streak || 0), "day streak", "sp-streak")}
+      ${pill(bolt, "Lv " + lvl, (s.xp || 0) + " XP", "sp-level")}
+      ${pill(bookI, finished, "finished", "sp-books")}
+      ${pill(target, acc + "%", "quiz score", "sp-acc")}
+    </div>`;
+  }
+  function heroHTML(b) {
+    const pct = bookProgressPct(b);
+    const st = state.books[b.id];
+    return `<section class="home-hero">
+      <div class="hero-cover">${coverHTML(b)}</div>
+      <div class="hero-body">
+        <div class="hero-eyebrow">Continue reading</div>
+        <h2 class="hero-title">${esc(b.title)}</h2>
+        <div class="hero-author">${esc(b.author)}</div>
+        <div class="hero-progress">
+          <div class="hero-bar"><div class="hero-bar-fill" style="width:${pct}%"></div></div>
+          <div class="hero-meta">Chapter ${Math.min((st.chapter || 0) + 1, b.chapters.length)} of ${b.chapters.length} · ${pct}%</div>
+        </div>
+        <button class="btn btn-primary btn-icon hero-resume" data-id="${b.id}"><i class="ic-play">${ICON.play}</i>Resume</button>
+      </div>
+    </section>`;
+  }
   function renderLibrary() {
     $("lib-greeting").textContent = state.profile ? `Hi ${state.profile.name} · Привет!` : "";
     const shelves = $("lib-shelves");
     shelves.innerHTML = "";
-    let shown = 0;
+    const defaultView = filters.cat === "all" && filters.year === "all" && !filters.search;
+
+    // Home hero + stats on the default view
+    if (state.profile && defaultView) {
+      const inProgress = LIBRARY
+        .filter((b) => { const s = state.books[b.id]; return s && s.lastRead && !s.finished; })
+        .sort((a, b2) => (state.books[b2.id].lastRead || 0) - (state.books[a.id].lastRead || 0));
+      const head = document.createElement("div");
+      head.className = "home-head";
+      head.innerHTML = (inProgress.length ? heroHTML(inProgress[0]) : "") + statsStripHTML();
+      shelves.appendChild(head);
+      const resume = head.querySelector(".hero-resume");
+      if (resume) resume.addEventListener("click", () => openReader(resume.dataset.id));
+    }
+
+    let shown = 0, shelfIdx = 0;
     shelfDefs().forEach((def) => {
+      // On the default view, the hero already covers "continue"; keep the shelf too but skip its top book if it's the hero.
       const books = LIBRARY.filter((b) => def.match(b) && passesFilters(b));
       if (!books.length) return;
       if (def.key === "continue") books.sort((a, b2) => (state.books[b2.id].lastRead || 0) - (state.books[a.id].lastRead || 0));
       shown += books.length;
       const shelf = document.createElement("section");
       shelf.className = "shelf";
-      shelf.innerHTML = `<div class="shelf-title">${def.title} <span class="shelf-count">${books.length} book${books.length > 1 ? "s" : ""}</span></div><div class="shelf-grid"></div>`;
+      shelf.style.animationDelay = (shelfIdx++ * 60) + "ms";
+      shelf.innerHTML = `<div class="shelf-title"><span class="shelf-accent"></span>${def.title} <span class="shelf-count">${books.length} book${books.length > 1 ? "s" : ""}</span></div><div class="shelf-grid"></div>`;
       const grid = shelf.querySelector(".shelf-grid");
       books.forEach((b) => {
         const pct = bookProgressPct(b);
@@ -284,6 +350,7 @@
     currentChapter = typeof chapterIdx === "number" ? chapterIdx : Math.min(st.chapter, currentBook.chapters.length - 1);
     currentPage = typeof chapterIdx === "number" ? 0 : st.page || 0;
     st.lastRead = Date.now();
+    touchStreak();
     applyReaderSettings();
     renderChapter();
     show("reader-screen");
@@ -409,7 +476,9 @@
       renderChapter();
     } else {
       const st = bookState(b.id);
-      st.finished = true; saveState();
+      st.finished = true;
+      state.stats.xp = (state.stats.xp || 0) + 100;   // book completion bonus
+      saveState();
       openBookFinished();
     }
   }
@@ -735,6 +804,8 @@
     if (!prev || ctx.score > prev.score) st.quizzes[currentChapter] = { score: ctx.score, total: ctx.questions.length };
     if (!prev) state.stats.chaptersRead += 1;
     state.stats.quizzesTaken += 1;
+    state.stats.xp = (state.stats.xp || 0) + ctx.score * 10 + 15;   // reward accuracy + effort
+    touchStreak();
     saveState();
     const frac = ctx.score / ctx.questions.length;
     const starCount = frac === 1 ? 3 : frac >= 0.66 ? 2 : frac >= 0.34 ? 1 : 0;
